@@ -2,7 +2,7 @@
 
 void printt()
 {
-    int var = 0;
-    std::cout << var;
+    int32 var = 0;
+    std::cout << var << std::endl;
     return;
 }

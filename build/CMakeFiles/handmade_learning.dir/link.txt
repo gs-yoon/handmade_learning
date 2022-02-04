@@ -1,1 +1,0 @@
-/usr/bin/c++    -rdynamic CMakeFiles/handmade_learning.dir/src/main.cpp.o  -o handmade_learning libactivate_function.a 

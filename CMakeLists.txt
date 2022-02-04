@@ -4,10 +4,10 @@ project( handmade_learning )
 
 #include_directories( ${OpenCV_INCLUDE_DIRS} )
 add_library(activate_function STATIC
-    includes/essential/activate_function.c)
+${CMAKE_SOURCE_DIR}/src/includes/essential/activate_functions.cpp)
 
-include_directories( ${CMAKE_SOURCE_DIR}/dependencies/eigen
-                        ${CMAKE_SOURCE_DIR}/src/includes/essential 
+include_directories( ${CMAKE_SOURCE_DIR}/dependencies/eigen-3.4.0
+                        ${CMAKE_SOURCE_DIR}/src/includes/essential
                         ${CMAKE_SOURCE_DIR}/src/includes/definition )
 
 
