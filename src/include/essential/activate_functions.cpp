@@ -1,8 +1,8 @@
 #include "activate_functions.h"
-#include <iostream>
 
-void print()
+void printt()
 {
-    int32 var = 0;
+    int var = 0;
     std::cout << var;
+    return;
 }
