@@ -111,19 +111,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named activate_function
-
-# Build rule for target.
-activate_function: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 activate_function
-.PHONY : activate_function
-
-# fast build rule for target.
-activate_function/fast:
-	$(MAKE) -f CMakeFiles/activate_function.dir/build.make CMakeFiles/activate_function.dir/build
-.PHONY : activate_function/fast
-
-#=============================================================================
 # Target rules for targets named handmade_learning
 
 # Build rule for target.
@@ -136,32 +123,59 @@ handmade_learning/fast:
 	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/build
 .PHONY : handmade_learning/fast
 
-src/includes/essential/activate_functions.o: src/includes/essential/activate_functions.cpp.o
+src/essential/activate_functions.o: src/essential/activate_functions.cpp.o
 
-.PHONY : src/includes/essential/activate_functions.o
+.PHONY : src/essential/activate_functions.o
 
 # target to build an object file
-src/includes/essential/activate_functions.cpp.o:
-	$(MAKE) -f CMakeFiles/activate_function.dir/build.make CMakeFiles/activate_function.dir/src/includes/essential/activate_functions.cpp.o
-.PHONY : src/includes/essential/activate_functions.cpp.o
+src/essential/activate_functions.cpp.o:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/activate_functions.cpp.o
+.PHONY : src/essential/activate_functions.cpp.o
 
-src/includes/essential/activate_functions.i: src/includes/essential/activate_functions.cpp.i
+src/essential/activate_functions.i: src/essential/activate_functions.cpp.i
 
-.PHONY : src/includes/essential/activate_functions.i
+.PHONY : src/essential/activate_functions.i
 
 # target to preprocess a source file
-src/includes/essential/activate_functions.cpp.i:
-	$(MAKE) -f CMakeFiles/activate_function.dir/build.make CMakeFiles/activate_function.dir/src/includes/essential/activate_functions.cpp.i
-.PHONY : src/includes/essential/activate_functions.cpp.i
+src/essential/activate_functions.cpp.i:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/activate_functions.cpp.i
+.PHONY : src/essential/activate_functions.cpp.i
 
-src/includes/essential/activate_functions.s: src/includes/essential/activate_functions.cpp.s
+src/essential/activate_functions.s: src/essential/activate_functions.cpp.s
 
-.PHONY : src/includes/essential/activate_functions.s
+.PHONY : src/essential/activate_functions.s
 
 # target to generate assembly for a file
-src/includes/essential/activate_functions.cpp.s:
-	$(MAKE) -f CMakeFiles/activate_function.dir/build.make CMakeFiles/activate_function.dir/src/includes/essential/activate_functions.cpp.s
-.PHONY : src/includes/essential/activate_functions.cpp.s
+src/essential/activate_functions.cpp.s:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/activate_functions.cpp.s
+.PHONY : src/essential/activate_functions.cpp.s
+
+src/essential/eigen_unsopported.o: src/essential/eigen_unsopported.cpp.o
+
+.PHONY : src/essential/eigen_unsopported.o
+
+# target to build an object file
+src/essential/eigen_unsopported.cpp.o:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/eigen_unsopported.cpp.o
+.PHONY : src/essential/eigen_unsopported.cpp.o
+
+src/essential/eigen_unsopported.i: src/essential/eigen_unsopported.cpp.i
+
+.PHONY : src/essential/eigen_unsopported.i
+
+# target to preprocess a source file
+src/essential/eigen_unsopported.cpp.i:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/eigen_unsopported.cpp.i
+.PHONY : src/essential/eigen_unsopported.cpp.i
+
+src/essential/eigen_unsopported.s: src/essential/eigen_unsopported.cpp.s
+
+.PHONY : src/essential/eigen_unsopported.s
+
+# target to generate assembly for a file
+src/essential/eigen_unsopported.cpp.s:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/eigen_unsopported.cpp.s
+.PHONY : src/essential/eigen_unsopported.cpp.s
 
 src/main.o: src/main.cpp.o
 
@@ -197,12 +211,14 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
-	@echo "... activate_function"
 	@echo "... handmade_learning"
-	@echo "... src/includes/essential/activate_functions.o"
-	@echo "... src/includes/essential/activate_functions.i"
-	@echo "... src/includes/essential/activate_functions.s"
+	@echo "... edit_cache"
+	@echo "... src/essential/activate_functions.o"
+	@echo "... src/essential/activate_functions.i"
+	@echo "... src/essential/activate_functions.s"
+	@echo "... src/essential/eigen_unsopported.o"
+	@echo "... src/essential/eigen_unsopported.i"
+	@echo "... src/essential/eigen_unsopported.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
