@@ -1,10 +1,8 @@
 #ifndef __ACTIVATE_FUNCTIONS_H__
 #define __ACTIVATE_FUNCTIONS_H__
-#include <iostream>
-#include <Eigen/Dense>
-#include <math.h>
-#include "type_definition.h"
+#include "base_operation.h"
 
+using Eigen::MatrixXd;
 using namespace std;
 
 inline float64 sigmoid(float64 x)
@@ -20,6 +18,12 @@ inline float64 relu(float64 x)
     return (x > 0 ) ? x : 0;
 }
 
-float64 softmax(Eigen::MatrixXd* x);
-
+float64 softmax(MatrixXd* x)
+{
+    //MatrixXd C(x->rows, x->cols);
+    //C.setOnes();
+    //C = C * x->maxCoeff();
+    //return exp(x - C) / mexp(x - C).sum ;
+    cout << mexp(x) << endl;;
+}
 #endif
