@@ -18,7 +18,7 @@ int main()
   x.setRandom();
   cout << "xx" << endl;
   cout << x << endl;
-  cout << softmax( &x ) <<endl;
+  softmax( &x );
 
   return 0;
 }

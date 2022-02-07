@@ -34,13 +34,20 @@ Tensor<float64,1> softmax(Tensor<float64,1>* x)
 
 Tensor<float64,2> softmax(Tensor<float64,2>* x)
 {
-    cout<<"sft 2"<<endl;
-    Eigen::array<int, 1> dims;
-    Tensor<float64,1> c = (x->maximum(dims));
-    cout << c<<endl;
-    Tensor<float64,2> exp_calc_x = (*x - c).exp();
-    
-    return exp_calc_x / exp_calc_x.sum(dims);
+  Eigen::array<int, 1> dims{1};
+  Tensor<float64,1> c = x->maximum(dims);
+  
+  Eigen::array<int, 2> c_dims{{c.dimension(0), 1}};
+  Tensor<float64,2> C = c.reshape(c_dims);
+  
+  Tensor<float64,2> tmp(1 , c.dimension(0));
+  tmp.setConstant(1);
+
+  Eigen::array<Eigen::IndexPair<int>, 1> product_dims = { Eigen::IndexPair<int>(1, 0) };
+  Tensor<float64,2> C_rst = C.contract(tmp,product_dims);
+
+  Tensor<float64,2> exp_calc_x = (*x - C_rst).exp();
+  return exp_calc_x / exp_calc_x.sum(dims).reshape(c_dims).contract(tmp, product_dims);
 }
 
 #endif

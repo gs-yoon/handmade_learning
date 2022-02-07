@@ -20,5 +20,4 @@ float64 crossEntropy(MatrixXd* y, MatrixXd* goal)
     return -mlog(*y).dot(*goal + delta)
 }
 
-
 #endif
