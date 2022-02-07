@@ -5,25 +5,10 @@
 using Eigen::MatrixXd;
 using namespace std;
 
-inline float64 sigmoid(float64 x)
-{
-    return 1 / (1 + exp(-x));
-}
-inline float64 step(float64 x)
-{
-    return  ( x > 0 ) ? 1 : 0;
-}
-inline float64 relu(float64 x)
-{
-    return (x > 0 ) ? x : 0;
-}
-
-float64 softmax(MatrixXd* x)
-{
-    //MatrixXd C(x->rows, x->cols);
-    //C.setOnes();
-    //C = C * x->maxCoeff();
-    //return exp(x - C) / mexp(x - C).sum ;
-    cout << mexp(x) << endl;;
-}
+float64 sigmoid(float64 x);
+float64 step(float64 x);
+float64 relu(float64 x);
+Tensor<float64,1> softmax(Tensor<float64,1>* x);
+Tensor<float64,2> softmax(Tensor<float64,2>* x);
+double softmaxx(double x);
 #endif

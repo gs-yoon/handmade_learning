@@ -1,10 +1,9 @@
 #include <iostream>
 #include <Eigen/Dense>
-#include <opencv4/core/mat.hpp>
 #include "activate_functions.h"
 
 using Eigen::MatrixXd;
- 
+
 int main()
 {
   MatrixXd m(2,2);
@@ -15,5 +14,11 @@ int main()
   std::cout << m.array().exp() << std::endl;
   std::cout << m << std::endl;
 
-  softmax(&m);
+  Eigen::Tensor<float64, 2> x(5,5);
+  x.setRandom();
+  cout << "xx" << endl;
+  cout << x << endl;
+  cout << softmax( &x ) <<endl;
+
+  return 0;
 }

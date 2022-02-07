@@ -123,6 +123,33 @@ handmade_learning/fast:
 	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/build
 .PHONY : handmade_learning/fast
 
+src/essential/basefunc/activate_functions.o: src/essential/basefunc/activate_functions.cpp.o
+
+.PHONY : src/essential/basefunc/activate_functions.o
+
+# target to build an object file
+src/essential/basefunc/activate_functions.cpp.o:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o
+.PHONY : src/essential/basefunc/activate_functions.cpp.o
+
+src/essential/basefunc/activate_functions.i: src/essential/basefunc/activate_functions.cpp.i
+
+.PHONY : src/essential/basefunc/activate_functions.i
+
+# target to preprocess a source file
+src/essential/basefunc/activate_functions.cpp.i:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.i
+.PHONY : src/essential/basefunc/activate_functions.cpp.i
+
+src/essential/basefunc/activate_functions.s: src/essential/basefunc/activate_functions.cpp.s
+
+.PHONY : src/essential/basefunc/activate_functions.s
+
+# target to generate assembly for a file
+src/essential/basefunc/activate_functions.cpp.s:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.s
+.PHONY : src/essential/basefunc/activate_functions.cpp.s
+
 src/essential/basefunc/base_operation.o: src/essential/basefunc/base_operation.cpp.o
 
 .PHONY : src/essential/basefunc/base_operation.o
@@ -186,6 +213,9 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... handmade_learning"
 	@echo "... edit_cache"
+	@echo "... src/essential/basefunc/activate_functions.o"
+	@echo "... src/essential/basefunc/activate_functions.i"
+	@echo "... src/essential/basefunc/activate_functions.s"
 	@echo "... src/essential/basefunc/base_operation.o"
 	@echo "... src/essential/basefunc/base_operation.i"
 	@echo "... src/essential/basefunc/base_operation.s"

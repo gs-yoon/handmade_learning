@@ -81,9 +81,33 @@ CMakeFiles/handmade_learning.dir/src/main.cpp.o.provides: CMakeFiles/handmade_le
 CMakeFiles/handmade_learning.dir/src/main.cpp.o.provides.build: CMakeFiles/handmade_learning.dir/src/main.cpp.o
 
 
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o: CMakeFiles/handmade_learning.dir/flags.make
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o: ../src/essential/basefunc/activate_functions.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/root/workspace/handmade_learning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o -c /root/workspace/handmade_learning/src/essential/basefunc/activate_functions.cpp
+
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /root/workspace/handmade_learning/src/essential/basefunc/activate_functions.cpp > CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.i
+
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /root/workspace/handmade_learning/src/essential/basefunc/activate_functions.cpp -o CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.s
+
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.requires:
+
+.PHONY : CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.requires
+
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.provides: CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.requires
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.provides.build
+.PHONY : CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.provides
+
+CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.provides.build: CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o
+
+
 CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o: CMakeFiles/handmade_learning.dir/flags.make
 CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o: ../src/essential/basefunc/base_operation.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/root/workspace/handmade_learning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/root/workspace/handmade_learning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o -c /root/workspace/handmade_learning/src/essential/basefunc/base_operation.cpp
 
 CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.i: cmake_force
@@ -108,12 +132,14 @@ CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o.pro
 # Object files for target handmade_learning
 handmade_learning_OBJECTS = \
 "CMakeFiles/handmade_learning.dir/src/main.cpp.o" \
+"CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o" \
 "CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o"
 
 # External object files for target handmade_learning
 handmade_learning_EXTERNAL_OBJECTS =
 
 handmade_learning: CMakeFiles/handmade_learning.dir/src/main.cpp.o
+handmade_learning: CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o
 handmade_learning: CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o
 handmade_learning: CMakeFiles/handmade_learning.dir/build.make
 handmade_learning: /usr/local/lib/libopencv_gapi.so.4.4.0
@@ -168,7 +194,7 @@ handmade_learning: /usr/local/lib/libopencv_photo.so.4.4.0
 handmade_learning: /usr/local/lib/libopencv_imgproc.so.4.4.0
 handmade_learning: /usr/local/lib/libopencv_core.so.4.4.0
 handmade_learning: CMakeFiles/handmade_learning.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/root/workspace/handmade_learning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable handmade_learning"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/root/workspace/handmade_learning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable handmade_learning"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/handmade_learning.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -177,6 +203,7 @@ CMakeFiles/handmade_learning.dir/build: handmade_learning
 .PHONY : CMakeFiles/handmade_learning.dir/build
 
 CMakeFiles/handmade_learning.dir/requires: CMakeFiles/handmade_learning.dir/src/main.cpp.o.requires
+CMakeFiles/handmade_learning.dir/requires: CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o.requires
 CMakeFiles/handmade_learning.dir/requires: CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o.requires
 
 .PHONY : CMakeFiles/handmade_learning.dir/requires
