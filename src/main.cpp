@@ -1,11 +1,13 @@
 #include <iostream>
-#include <Eigen/Dense>
-#include "activate_functions.h"
 
-using Eigen::MatrixXd;
+//#include "activate_functions.h"
+//#include <Eigen/Dense>
+//using Eigen::MatrixXd;
+#include "tensor.cpp"
 
 int main()
 {
+  /*
   MatrixXd m(2,2);
   m(0,0) = 3;
   m(1,0) = 2.5;
@@ -19,6 +21,8 @@ int main()
   cout << "xx" << endl;
   cout << x << endl;
   softmax( &x );
+*/
+  Tensor<float> tensor(2,2);
 
   return 0;
 }

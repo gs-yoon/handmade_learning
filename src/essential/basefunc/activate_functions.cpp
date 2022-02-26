@@ -38,7 +38,7 @@ Tensor<float64,2> softmax(Tensor<float64,2>* x)
   Tensor<float64,1> c = x->maximum(dims);
   
   Eigen::array<int, 2> c_dims{{c.dimension(0), 1}};
-  Tensor<float64,2> C = c.reshape(c_dims);
+  Tensor<float64,2> C = c.reshape(c_dims); 
   
   Tensor<float64,2> tmp(1 , c.dimension(0));
   tmp.setConstant(1);
