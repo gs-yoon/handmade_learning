@@ -2,6 +2,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/handmade_learning.dir/src/main.cpp.o"
   "CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o"
   "CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o"
+  "CMakeFiles/handmade_learning.dir/src/essential/tensor/tensor.cpp.o"
   "handmade_learning.pdb"
   "handmade_learning"
 )

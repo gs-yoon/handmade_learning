@@ -177,6 +177,33 @@ src/essential/basefunc/base_operation.cpp.s:
 	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.s
 .PHONY : src/essential/basefunc/base_operation.cpp.s
 
+src/essential/tensor/tensor.o: src/essential/tensor/tensor.cpp.o
+
+.PHONY : src/essential/tensor/tensor.o
+
+# target to build an object file
+src/essential/tensor/tensor.cpp.o:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/tensor/tensor.cpp.o
+.PHONY : src/essential/tensor/tensor.cpp.o
+
+src/essential/tensor/tensor.i: src/essential/tensor/tensor.cpp.i
+
+.PHONY : src/essential/tensor/tensor.i
+
+# target to preprocess a source file
+src/essential/tensor/tensor.cpp.i:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/tensor/tensor.cpp.i
+.PHONY : src/essential/tensor/tensor.cpp.i
+
+src/essential/tensor/tensor.s: src/essential/tensor/tensor.cpp.s
+
+.PHONY : src/essential/tensor/tensor.s
+
+# target to generate assembly for a file
+src/essential/tensor/tensor.cpp.s:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/essential/tensor/tensor.cpp.s
+.PHONY : src/essential/tensor/tensor.cpp.s
+
 src/main.o: src/main.cpp.o
 
 .PHONY : src/main.o
@@ -219,6 +246,9 @@ help:
 	@echo "... src/essential/basefunc/base_operation.o"
 	@echo "... src/essential/basefunc/base_operation.i"
 	@echo "... src/essential/basefunc/base_operation.s"
+	@echo "... src/essential/tensor/tensor.o"
+	@echo "... src/essential/tensor/tensor.i"
+	@echo "... src/essential/tensor/tensor.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

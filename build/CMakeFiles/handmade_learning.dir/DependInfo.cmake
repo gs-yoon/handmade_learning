@@ -6,6 +6,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_CHECK_CXX
   "/root/workspace/handmade_learning/src/essential/basefunc/activate_functions.cpp" "/root/workspace/handmade_learning/build/CMakeFiles/handmade_learning.dir/src/essential/basefunc/activate_functions.cpp.o"
   "/root/workspace/handmade_learning/src/essential/basefunc/base_operation.cpp" "/root/workspace/handmade_learning/build/CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o"
+  "/root/workspace/handmade_learning/src/essential/tensor/tensor.cpp" "/root/workspace/handmade_learning/build/CMakeFiles/handmade_learning.dir/src/essential/tensor/tensor.cpp.o"
   "/root/workspace/handmade_learning/src/main.cpp" "/root/workspace/handmade_learning/build/CMakeFiles/handmade_learning.dir/src/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
@@ -15,6 +16,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "/usr/local/include/opencv4"
   "../dependencies/eigen-3.4.0"
   "../src/essential/basefunc"
+  "../src/essential/tensor"
   "../src/includes/definition"
   )
 
