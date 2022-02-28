@@ -3,26 +3,28 @@
 //#include "activate_functions.h"
 //#include <Eigen/Dense>
 //using Eigen::MatrixXd;
-#include "tensor.cpp"
+#include "essential/tensor/tensor.h"
+
+Tensor<float> f(Tensor<float> tt){
+  std::cout <<"ff"<<&tt<<std::endl;
+  return tt;
+  //std::cout << &t <<std::endl;
+}
 
 int main()
 {
-  /*
-  MatrixXd m(2,2);
+  Tensor<float> m(2,2);
   m(0,0) = 3;
   m(1,0) = 2.5;
   m(0,1) = -1;
-  m(1,1) = m(1,0) + m(0,1);
-  std::cout << m.array().exp() << std::endl;
+  m(1,1) = 4;
+
   std::cout << m << std::endl;
 
-  Eigen::Tensor<float64, 2> x(5,5);
-  x.setRandom();
-  cout << "xx" << endl;
-  cout << x << endl;
-  softmax( &x );
-*/
-  Tensor<float> tensor(2,2);
+  Tensor<float> rst;
+
+  rst = m.matMul(m);
+  std::cout << rst << std::endl;
 
   return 0;
 }

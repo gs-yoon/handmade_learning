@@ -707,8 +707,6 @@ CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o: ..
 CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o: ../src/essential/basefunc/base_operation.cpp
 CMakeFiles/handmade_learning.dir/src/essential/basefunc/base_operation.cpp.o: ../src/essential/basefunc/base_operation.h
 
-CMakeFiles/handmade_learning.dir/src/essential/tensor/tensor.cpp.o: ../src/essential/tensor/tensor.cpp
-
-CMakeFiles/handmade_learning.dir/src/main.cpp.o: ../src/essential/tensor/tensor.cpp
+CMakeFiles/handmade_learning.dir/src/main.cpp.o: ../src/essential/tensor/tensor.h
 CMakeFiles/handmade_learning.dir/src/main.cpp.o: ../src/main.cpp
 
