@@ -1,5 +1,5 @@
 #include"base_operation.h"
-
+/*
 inline Eigen::MatrixXd mBaseOp2d(Eigen::MatrixXd* x, double (*fp)(double ) )
 {
     uint32 row = x->rows();
@@ -49,3 +49,4 @@ Eigen::MatrixXd mpow(Eigen::MatrixXd* x, float32 p)
 {
     return mBaseOp2d(x,p,pow);
 }
+*/

@@ -4,10 +4,32 @@
 #include<stdio.h>
 #include<iostream>
 
-#define TENSORDEBUG 1
+#define TENSORDEBUG 0
 #define DEFAULTMAXDIM 5
 #define ROWIDX 3
 #define COLIDX 4
+
+typedef float SCALARTYPE;
+
+enum OPERATIONS{
+    SUM=0,
+    SUB,
+    MUL,
+    DIV};
+
+enum SHAPEMATCH{
+    SHAPE_UNMATCHED =0,
+    SHAPE_EQUAL,
+    SHAPE_4D_CONST,
+    SHAPE_3D_CONST,
+    SHAPE_2D_CONST,
+    SHAPE_1D_CONST,
+    SHAPE_0D_CONST, //scalar
+    SHAPE_1D_MATCH, //col match
+    SHAPE_2D_MATCH,
+    SHAPE_3D_MATCH,
+    SHAPE_4D_MATCH
+};
 
 long long g_delete_cnt =0;
 long long g_make_cnt =0;
@@ -15,7 +37,7 @@ long long g_make_cnt =0;
 struct DimensionType
 {
     /* data */
-    int* dims;
+    int* shape;
     int rank;
 };
 
@@ -25,18 +47,20 @@ class Tensor
 private:
     T***** root_ = nullptr;
 
-    int* dims_ = nullptr;
+    int* shape_ = nullptr;
     int row_ =0;
     int col_ =0;
     int rank_ = 0;
+    int valid_ = 0;
 
 private:
-
     Tensor<T> matMul1D(Tensor<T>& );
     Tensor<T> matMul2D(Tensor<T>& );
     Tensor<T> matMul3D(Tensor<T>& );
+    Tensor<T> elementWise( Tensor<T>&, Tensor<T>& ,int ,int);
     void makeTensor(int d1, int d2, int d3, int d4, int d5);
     void breakTensor();
+    int checkShape(const Tensor<T>&);
 
     T& root(){ return root_[0][0][0][0][0]; }
     T& root(int i){ return root_[0][0][0][0][i]; }
@@ -55,7 +79,7 @@ public:
     Tensor(const Tensor<T>& cp);
     Tensor(DimensionType);
     ~Tensor();
-    int getDims(int dim);
+    int getShape(int dim);
     int setVal();
     int setConstant();
     int setRandom();
@@ -84,22 +108,127 @@ public:
     T& operator()(int i, int j, int k, int l) { return root(i,j,k,l); }
     T& operator()(int i, int j, int k, int l, int m) { return root(i,j,k,l,m); }
 
-    Tensor<T>& operator=(const Tensor<T>& cp);
+    Tensor<T> operator +(Tensor<T>& in) 
+    {
+        Tensor<T> ret;
+        int shape_status = in.checkShape(*this);
+        if (shape_status >0)
+            ret = elementWise(*this, in, shape_status, SUM);
+        shape_status = checkShape(in) ;
+        if (shape_status >0)
+            ret = elementWise(in,*this, shape_status, SUM);
+        return ret;
+    }
 
-    //operator +
-    //operator *
-    //operator -
-    //operator /
-    //operator !=
-    //operator ==
-    //operator <
-    //operator >
+    Tensor<T> operator *(Tensor<T>& in) 
+    {
+        Tensor<T> ret;
+        int shape_status = in.checkShape(*this);
+        if (shape_status >0)
+            ret = elementWise(*this, in, shape_status, MUL);
+        shape_status = checkShape(in) ;
+        if (shape_status >0)
+            ret = elementWise(in,*this, shape_status, MUL);
+        return ret;
+    }
+    Tensor<T> operator -(Tensor<T>& in) 
+    {
+        Tensor<T> ret;
+        int shape_status = in.checkShape(*this);
+        if (shape_status >0)
+            ret = elementWise(*this, in, shape_status, SUB);
+        shape_status = checkShape(in) ;
+        if (shape_status >0)
+            ret = elementWise(in,*this, shape_status, SUB);
+        return ret;
+    }
+    Tensor<T> operator /(Tensor<T>& in) 
+    {
+        Tensor<T> ret;
+        int shape_status = in.checkShape(*this);
+        if (shape_status >0)
+            ret = elementWise(*this, in, shape_status, DIV);
+        shape_status = checkShape(in) ;
+        if (shape_status >0)
+            ret = elementWise(in,*this, shape_status, DIV);
+        return ret;
+    }
+
+    Tensor<T>& operator=(const Tensor<T>& cp);
+    Tensor<T>& operator=(const SCALARTYPE scalar);
+    Tensor<T>& operator=(const int scalar);
+    Tensor<T>& operator=(const bool scalar);
+
+    bool operator!=(int t)
+    {
+        if (rank_ == 0)
+        {
+            return root(0) != t; 
+        }
+        else
+        {
+            printf("no scalar\n");
+            return true;
+        }
+    }
+    bool operator!=(bool t)
+    {
+        if (rank_ == 0)
+        {
+            return root(0) != t; 
+        }
+        else
+        {
+            printf("no scalar\n");
+            return true;
+        }
+    }
+    bool operator==(int t)
+    {
+        if (rank_ == 0)
+        {
+            return root(0) == t; 
+        }
+        else
+        {
+            printf("no scalar\n");
+            return true;
+        }
+    }
+    bool operator==(bool t)
+    {
+        if (rank_ == 0)
+        {
+            return root(0) == t; 
+        }
+        else
+        {
+            printf("no scalar\n");
+            return true;
+        }
+    }
+    bool operator<(const Tensor<T> t)
+    {
+        if (rank_ == 0)
+            return root(0) < t.root(0); 
+        else
+            return false;
+    }
+    bool operator>(const Tensor<T> t)
+    {
+        if (rank_ == 0)
+            return root(0) > t.root(0); 
+        else
+            return false;
+    }
+
+
 };
 
 template<typename T>
 Tensor<T>::Tensor()
 {
-    makeTensor(0,0,0,0,0);
+    valid_ = 0;
 }
 template<typename T>
 Tensor<T>::Tensor(int d1)
@@ -132,86 +261,144 @@ template<typename T>
 Tensor<T>::Tensor(const Tensor<T>& cp)
 {
     #if TENSORDEBUG
-    printf("\ncopy\n");
+    printf("copy\n");
     #endif 
 
-    if ((root_ == nullptr) && (dims_== nullptr))
+    if ((root_ == nullptr) && (shape_== nullptr))
     {
-        makeTensor(cp.dims_[0],cp.dims_[1],cp.dims_[2],cp.dims_[3],cp.dims_[4]);
+        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
 
-    else if ((root_ == nullptr) || (dims_== nullptr))
+    else if ((root_ == nullptr) || (shape_== nullptr))
     {
         #if TENSORDEBUG
         printf("Critical constructor error\n");
         printf("Rebuilding Tensor...\n");
         #endif 
         breakTensor();
-        makeTensor(cp.dims_[0],cp.dims_[1],cp.dims_[2],cp.dims_[3],cp.dims_[4]);
+        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
     else{
         #if TENSORDEBUG
         printf("Rebuilding Tensor...\n");
         #endif 
         breakTensor();
-        makeTensor(cp.dims_[0],cp.dims_[1],cp.dims_[2],cp.dims_[3],cp.dims_[4]);
+        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
 
     rank_ = cp.rank_;
     for( int i =0 ;i <= 5 ; i++)
     {
-        dims_[i] = cp.dims_[i];
+        shape_[i] = cp.shape_[i];
     }
 
-    for(int d1_idx = 0 ; d1_idx < dims_[0] ; d1_idx++)
-        for( int d2_idx = 0; d2_idx < dims_[1] ; d2_idx++)
-            for( int d3_idx = 0; d3_idx < dims_[2] ; d3_idx++)
-                for( int d4_idx = 0; d4_idx < dims_[3] ; d4_idx++)
-                    for( int d5_idx = 0; d5_idx < dims_[4] ; d5_idx++)
+    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
+        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
+            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
+                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
                         root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;
 }
 
-//assing constructor
+//assign constructor
+template<typename T>
+Tensor<T>& Tensor<T>::operator=(const SCALARTYPE scalar)
+{
+    if (valid_ == true)
+    {
+        if(rank_ > 0)
+        {
+            breakTensor();
+            printf("warning! a tensor was breaked for assign scalar\n");
+        }
+    }
+
+    if (valid_ == false)
+    {
+        makeTensor(1,1,1,1,1);
+    }
+
+    root(0) = scalar;
+}
+
+template<typename T>
+Tensor<T>& Tensor<T>::operator=(const int scalar)
+{
+    if (valid_ == true)
+    {
+        if(rank_ > 0)
+        {
+            breakTensor();
+            printf("warning! a tensor was breaked for assign scalar\n");
+        }
+    }
+
+    if (valid_ == false)
+    {
+        makeTensor(1,1,1,1,1);
+    }
+
+    root(0) = scalar;
+}
+template<typename T>
+Tensor<T>& Tensor<T>::operator=(const bool scalar)
+{
+    if (valid_ == true)
+    {
+        if(rank_ > 0)
+        {
+            breakTensor();
+            printf("warning! a tensor was breaked for assign scalar\n");
+        }
+    }
+
+    if (valid_ == false)
+    {
+        makeTensor(1,1,1,1,1);
+    }
+
+    root(0) = scalar;
+}
 template<typename T>
 Tensor<T>& Tensor<T>::operator=(const Tensor<T>& cp)
 {
     #if TENSORDEBUG
-    printf("\n====\n");
+    printf("====\n");
     #endif
-    if ((root_ == nullptr) && (dims_== nullptr))
+    if ((root_ == nullptr) && (shape_== nullptr))
     {
-        makeTensor(cp.dims_[0],cp.dims_[1],cp.dims_[2],cp.dims_[3],cp.dims_[4]);
+        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
 
-    else if ((root_ == nullptr) || (dims_== nullptr))
+    else if ((root_ == nullptr) || (shape_== nullptr))
     {
         #if TENSORDEBUG
         printf("Critical constructor error\n");
         printf("Rebuilding Tensor...\n");
         #endif
         breakTensor();
-        makeTensor(cp.dims_[0],cp.dims_[1],cp.dims_[2],cp.dims_[3],cp.dims_[4]);
+        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
     else{
         #if TENSORDEBUG
         printf("Rebuilding Tensor...\n");
         #endif
         breakTensor();
-        makeTensor(cp.dims_[0],cp.dims_[1],cp.dims_[2],cp.dims_[3],cp.dims_[4]);
+        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
 
     rank_ = cp.rank_;
     for( int i =0 ;i < 5 ; i++)
     {
-        dims_[i] = cp.dims_[i];
+        shape_[i] = cp.shape_[i];
     }
     printf("\n ");
 
-    for(int d1_idx = 0 ; d1_idx < dims_[0] ; d1_idx++)
-        for( int d2_idx = 0; d2_idx < dims_[1] ; d2_idx++)
-            for( int d3_idx = 0; d3_idx < dims_[2] ; d3_idx++)
-                for( int d4_idx = 0; d4_idx < dims_[3] ; d4_idx++)
-                    for( int d5_idx = 0; d5_idx < dims_[4] ; d5_idx++)
+    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
+        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
+            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
+                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
                         root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;
 
     return *this;
@@ -220,9 +407,13 @@ Tensor<T>& Tensor<T>::operator=(const Tensor<T>& cp)
 template<typename T>
 inline void Tensor<T>::makeTensor(int d1, int d2, int d3, int d4, int d5)
 {
+    if (valid_ == 1)
+        breakTensor();
+
+    valid_ = 1;
     g_make_cnt ++;
     root_ = new T****[d1];
-    dims_ = new int[DEFAULTMAXDIM];
+    shape_ = new int[DEFAULTMAXDIM];
 
     for(int idx = 0 ; idx < d1 ; idx ++)
     {
@@ -259,25 +450,26 @@ inline void Tensor<T>::makeTensor(int d1, int d2, int d3, int d4, int d5)
             }
         }
     }
-    dims_[0] = d1;
-    dims_[1] = d2;
-    dims_[2] = d3;
-    dims_[3] = d4;
-    dims_[4] = d5;
+    shape_[0] = d1;
+    shape_[1] = d2;
+    shape_[2] = d3;
+    shape_[3] = d4;
+    shape_[4] = d5;
     row_ = d4;
     col_ = d5;
-    if (d5 <= 1)
-        rank_ = 0;
-    else if (d4 <= 1)
-        rank_ = 1;
-    else if (d3 <= 1)
-        rank_ = 2;
-    else if (d2 <= 1)
-        rank_ = 3;
-    else if (d1 <= 1)
-        rank_ = 4;
-    else
+
+    if (d1 >1)
         rank_ = 5;
+    else if (d2 >1)
+        rank_ = 4;
+    else if (d3 >1)
+        rank_ = 3;
+    else if (d4 >1)
+        rank_ = 2;
+    else if (d5 >1)
+        rank_ = 1;
+    else
+        rank_ = 0;
 }
 
 template<typename T>
@@ -290,13 +482,15 @@ template<typename T>
 void Tensor<T>::breakTensor()
 {
     g_delete_cnt ++;
-    for(int d1_idx = 0 ; d1_idx < dims_[0] ; d1_idx++)
+    valid_ = 0;
+
+    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
     {
-        for( int d2_idx = 0; d2_idx < dims_[1] ; d2_idx++)
+        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
         {
-            for( int d3_idx = 0; d3_idx < dims_[2] ; d3_idx++)
+            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
             {
-                for( int d4_idx = 0; d4_idx < dims_[3] ; d4_idx++)
+                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
                 {
                     if (root_[d1_idx][d2_idx][d3_idx][d4_idx] != nullptr)
                     {
@@ -329,23 +523,23 @@ void Tensor<T>::breakTensor()
             root_ = nullptr;
         }
 
-    if (dims_ != nullptr)
+    if (shape_ != nullptr)
     {
-        delete[] dims_;
-        dims_ = nullptr;
+        delete[] shape_;
+        shape_ = nullptr;
     }
 }
 
 template<typename T>
-int Tensor<T>::getDims(int dim)
+int Tensor<T>::getShape(int dim)
 {
     if (dim <= 5)
     {
-        return dims_[dim];
+        return shape_[dim];
     }
     else
     {
-        printf("input parameter of getDims is out of bound\n");
+        printf("input parameter of getShape is out of bound\n");
         return -1;
     }
 }
@@ -379,22 +573,22 @@ Tensor<T> Tensor<T>::matMul(Tensor<T>& in_tensor)
     //return result;
 }
 
-
 template<typename T>
 Tensor<T> Tensor<T>::matMul1D(Tensor<T>& in_tensor)
 {
+    Tensor<T> result;
     if ( (rank_ == 0 ) && (in_tensor.rank_ > 0) )
     {
         T* ptr = in_tensor.root_[0][0][0][0];
         int numOfElements = 1;
         for(int i =0 ; i< in_tensor.rank_ ; i++)
         {
-            numOfElements *= in_tensor.dims_[i];
+            numOfElements *= in_tensor.shape_[i];
         }
 
         for(int i=0; i < numOfElements; i++)
         {
-            *(ptr+i) = *(ptr+i) * (root(0));
+            result(i) = *(ptr+i) * (root(0));
         }
     }
     else if ( (in_tensor.rank_ == 0 ) && (rank_ > 0 )  )
@@ -403,7 +597,7 @@ Tensor<T> Tensor<T>::matMul1D(Tensor<T>& in_tensor)
         int numOfElements = 1;
         for(int i =0 ; i< rank_ ; i++)
         {
-            numOfElements *= dims_[i];
+            numOfElements *= shape_[i];
         }
 
         for(int i=0; i < numOfElements; i++)
@@ -420,22 +614,22 @@ Tensor<T> Tensor<T>::matMul1D(Tensor<T>& in_tensor)
 template<typename T>
 Tensor<T> Tensor<T>::matMul2D(Tensor<T>& in_tensor)
 {
-    Tensor<T> result(dims_[ROWIDX], in_tensor.dims_[COLIDX]);
+    Tensor<T> result(shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
     if ( (rank_ == 2) && (in_tensor.rank_ == 2))
     {
-        if (dims_[COLIDX] == in_tensor.dims_[ROWIDX])
+        if (shape_[COLIDX] == in_tensor.shape_[ROWIDX])
         {
-            for(int i = 0 ; i < dims_[ROWIDX] ; i ++ )
+            for(int i = 0 ; i < shape_[ROWIDX] ; i ++ )
             {
-                for(int k =0 ; k < in_tensor.dims_[COLIDX]; k++)
+                for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
                 {
                     sum =0 ;
-                    for(int j = 0 ; j < dims_[4] ; j ++)
+                    for(int j = 0 ; j < shape_[4] ; j ++)
                     {
                         sum += root(i,j) * in_tensor.root(j,k);
                     }
-                result(i,k) = sum;
+                    result(i,k) = sum;
                 }
             }
         }
@@ -453,24 +647,24 @@ Tensor<T> Tensor<T>::matMul2D(Tensor<T>& in_tensor)
 template<typename T>
 Tensor<T> Tensor<T>::matMul3D(Tensor<T>& in_tensor)
 {
-    Tensor<T> result(dims_[0], dims_[1], dims_[2], dims_[ROWIDX], in_tensor.dims_[COLIDX]);
+    Tensor<T> result(shape_[0], shape_[1], shape_[2], shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
     if ((rank_ >=3) && (in_tensor.rank_>=3))
     {
-        if ( (dims_[0] == in_tensor.dims_[0]) 
-                && (dims_[1] == in_tensor.dims_[1])
-                && (dims_[2] == in_tensor.dims_[2])
-                && (dims_[COLIDX] == in_tensor.dims_[ROWIDX]) )
+        if ( (shape_[0] == in_tensor.shape_[0]) 
+                && (shape_[1] == in_tensor.shape_[1])
+                && (shape_[2] == in_tensor.shape_[2])
+                && (shape_[COLIDX] == in_tensor.shape_[ROWIDX]) )
         {
-            for(int d1_idx =0; d1_idx < dims_[0]; d1_idx++)
-                for(int d2_idx =0; d2_idx < dims_[1]; d2_idx++)
-                    for(int d3_idx =0; d3_idx < dims_[2]; d3_idx++)
-                        for(int i = 0 ; i < dims_[ROWIDX] ; i ++ )
+            for(int d1_idx =0; d1_idx < shape_[0]; d1_idx++)
+                for(int d2_idx =0; d2_idx < shape_[1]; d2_idx++)
+                    for(int d3_idx =0; d3_idx < shape_[2]; d3_idx++)
+                        for(int i = 0 ; i < shape_[ROWIDX] ; i ++ )
                         {
-                            for(int k =0 ; k < in_tensor.dims_[COLIDX]; k++)
+                            for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
                             {
                                 sum =0 ;
-                                for(int j = 0 ; j < dims_[4] ; j ++)
+                                for(int j = 0 ; j < shape_[4] ; j ++)
                                 {
                                     sum += root(i,j) * in_tensor.root(j,k);
                                 }
@@ -490,9 +684,269 @@ Tensor<T> Tensor<T>::matMul3D(Tensor<T>& in_tensor)
 }
 
 template<typename T>
-Tensor<T> Tensor<T>::dotMul(Tensor<T>& in_tensor)
+inline int Tensor<T>::checkShape(const Tensor<T>& in_tensor)
 {
-    
+    if( (shape_[0] == in_tensor.shape_[0]) 
+        && (shape_[1] == in_tensor.shape_[1]) 
+        && (shape_[2] == in_tensor.shape_[2]) 
+        && (shape_[3] == in_tensor.shape_[3]) 
+        && (shape_[4] == in_tensor.shape_[4]) )
+        {
+            return SHAPE_EQUAL;
+        }
+    else if ((shape_[0] == in_tensor.shape_[0]) 
+        && (shape_[1] == in_tensor.shape_[1]) 
+        && (shape_[2] == in_tensor.shape_[2]) 
+        && (shape_[3] == in_tensor.shape_[3])
+        && (shape_[4] == 1 ))
+        {
+            return SHAPE_4D_CONST;
+        }
+    else if ((shape_[0] == in_tensor.shape_[0]) 
+        && (shape_[1] == in_tensor.shape_[1]) 
+        && (shape_[2] == in_tensor.shape_[2]) 
+        && (shape_[3] == 1 )
+        && (shape_[4] == 1 ))
+        {
+            return SHAPE_3D_CONST;
+        }
+    else if ((shape_[0] == in_tensor.shape_[0]) 
+        && (shape_[1] == in_tensor.shape_[1]) 
+        && (shape_[2] == 1) 
+        && (shape_[3] == 1 )
+        && (shape_[4] == 1 ))
+        {
+            return SHAPE_2D_CONST;
+        }
+    else if ((shape_[0] == in_tensor.shape_[0]) 
+        && (shape_[1] == 1) 
+        && (shape_[2] == 1) 
+        && (shape_[3] == 1 )
+        && (shape_[4] == 1 ))
+        {
+            return SHAPE_1D_CONST;
+        }
+    else if ((shape_[0] == 1) 
+        && (shape_[1] == 1) 
+        && (shape_[2] == 1) 
+        && (shape_[3] == 1 )
+        && (shape_[4] == 1 ))
+        {
+            return SHAPE_0D_CONST;
+        }
+    else if ((shape_[0] == 1) 
+        && (shape_[1] == 1) 
+        && (shape_[2] == 1) 
+        && (shape_[3] == 1 ) 
+        && (shape_[4] == in_tensor.shape_[4]))
+        {
+            return SHAPE_1D_MATCH;
+        }
+    else if ((shape_[0] == 1) 
+        && (shape_[1] == 1) 
+        && (shape_[2] == 1) 
+        && (shape_[3] == in_tensor.shape_[3]) 
+        && (shape_[4] == in_tensor.shape_[4]))
+        {
+            return SHAPE_2D_MATCH;
+        }
+    else if ((shape_[0] == 1) 
+        && (shape_[1] == 1) 
+        && (shape_[2] == in_tensor.shape_[2]) 
+        && (shape_[3] == in_tensor.shape_[3])
+        && (shape_[4] == in_tensor.shape_[4]))
+        {
+            return SHAPE_3D_MATCH;
+        }
+    else if ((shape_[0] == 1) 
+        && (shape_[1] == in_tensor.shape_[1]) 
+        && (shape_[2] == in_tensor.shape_[2]) 
+        && (shape_[3] == in_tensor.shape_[3]) 
+        && (shape_[4] == in_tensor.shape_[4]))
+        {
+            return SHAPE_4D_MATCH;
+        }
+    else
+    {   
+        return SHAPE_UNMATCHED;
+    }
+}
+
+template<typename T>
+Tensor<T> Tensor<T>::dotMul(Tensor<T>& in)
+{
+    Tensor<T> result(1);
+    int status = true;
+    SCALARTYPE sum = 0;
+
+    if ( (rank_ == 1) && (in.rank_==1))
+    {
+        if ( shape_[COLIDX] == in.shape_[COLIDX] )
+        {
+            for(int i =0 ; i< shape_[COLIDX]; i++)
+            {
+                sum += root(i) * in.root(i);
+            }
+            status = true;
+        }
+        else
+        {
+            status = false;
+        }
+    }
+    else if ( (rank_ == 2) && (in.rank_==2))
+    {
+        if ( shape_[ROWIDX] == in.shape_[ROWIDX] )
+        {
+            for(int i =0 ; i< shape_[ROWIDX]; i++)
+            {
+                sum += root(i,1) * in.root(i,1);
+            }
+            status = true;
+        }
+        else
+        {
+            status = false;
+        }
+    }
+    else
+    {
+        status = false;
+    }
+
+
+    if (status == true)
+    {
+        result = sum;
+    }
+    else
+    {
+        result = status;
+    }
+
+    return result;
+}
+
+
+template<typename T>
+Tensor<T> Tensor<T>::elementWise( Tensor<T>& A,  Tensor<T>& B, int shape_status, int op )
+{
+    Tensor<T> result;
+    if (SHAPE_UNMATCHED)
+    {
+        printf("shape is not matched \n");
+    }
+    else if (SHAPE_EQUAL <= shape_status && shape_status <= SHAPE_0D_CONST  )
+    {
+        result.makeTensor(A.shape_[0],A.shape_[1],A.shape_[2],A.shape_[3],A.shape_[4]);
+        int in_d1_idx = 0;
+        for(int d1_idx = 0 ; d1_idx < A.shape_[0]; d1_idx++)
+        {
+            int in_d2_idx = 0;
+            for( int d2_idx = 0; d2_idx < A.shape_[1] ;d2_idx++)
+            {
+                int in_d3_idx = 0;
+                for( int d3_idx = 0; d3_idx < A.shape_[2] ;d3_idx++)
+                {
+                    int in_d4_idx = 0;
+                    for( int d4_idx = 0; d4_idx < A.shape_[3] ; d4_idx++)
+                    {
+                        int in_d5_idx = 0;
+                        for( int d5_idx = 0; d5_idx < A.shape_[4] ;d5_idx++)
+                        {
+                            if (op == SUM)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) + B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                            }
+                            else if (op == SUB)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) - B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                            }
+                            else if (op == MUL)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) * B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                            }
+                            if (op == DIV)
+                            {
+                                if (B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) != 0)
+                                    result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) / B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                                else
+                                    printf("divide by 0\n");
+                            }
+                            if (shape_status == SHAPE_EQUAL)
+                                in_d5_idx++;
+                        }
+                        if (shape_status <= SHAPE_4D_CONST)
+                            in_d4_idx++;
+                    }
+                    if (shape_status <= SHAPE_3D_CONST)
+                        in_d3_idx++;
+                }
+                if (shape_status <= SHAPE_2D_CONST)
+                    in_d2_idx++;
+            }
+            if (shape_status <= SHAPE_1D_CONST)
+                in_d1_idx++;
+        }
+    }
+
+    else if (shape_status>= SHAPE_1D_MATCH)
+    {
+        result.makeTensor(A.shape_[0],A.shape_[1],A.shape_[2],A.shape_[3],A.shape_[4]);
+        int in_d1_idx = 0;
+        for(int d1_idx = 0 ; d1_idx < A.shape_[0]; d1_idx++)
+        {
+            int in_d2_idx = 0;
+            for( int d2_idx = 0; d2_idx < A.shape_[1] ;d2_idx++)
+            {
+                int in_d3_idx = 0;
+                for( int d3_idx = 0; d3_idx < A.shape_[2] ;d3_idx++)
+                {
+                    int in_d4_idx = 0;
+                    for( int d4_idx = 0; d4_idx < A.shape_[3] ; d4_idx++)
+                    {
+                        int in_d5_idx = 0;
+                        for( int d5_idx = 0; d5_idx < A.shape_[4] ;d5_idx++)
+                        {
+                            if (op == SUM)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) + B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                            }
+                            else if (op == SUB)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) - B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                            }
+                            else if (op == MUL)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) * B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                            }
+                            if (op == DIV)
+                            {
+                                if (B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) != 0)
+                                    result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = A(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) / B(in_d1_idx,in_d2_idx,in_d3_idx,in_d4_idx,in_d5_idx) ;
+                                else
+                                    printf("divide by 0\n");
+                            }
+                            if (shape_status >= SHAPE_1D_MATCH) //1D 2D 3D 4D
+                                in_d5_idx++;
+                        }
+                        if (shape_status >= SHAPE_2D_MATCH) //2D 3D 4D
+                            in_d4_idx++;
+                    }
+                    if (shape_status >= SHAPE_3D_MATCH) // 4D 3D
+                        in_d3_idx++;
+                }
+                if (shape_status >= SHAPE_4D_MATCH) // only 4D ++
+                    in_d2_idx++;
+            }
+                //in_d1_idx++; 
+        }
+    }
+    else{
+        printf("Shape mismath for Elemenet Wise\n ");
+        result = 0;
+    }
+    return result;
 }
 template<typename T>
 Tensor<T> Tensor<T>::reshape(int)
@@ -555,47 +1009,47 @@ template <typename T>
 std::ostream& operator<<(std::ostream& os, Tensor<T>& t)
 {
     int t_rank = t.rank();
-    int dims[5] = {0};
-    dims[0] = t.getDims(0);
-    dims[1] = t.getDims(1);
-    dims[2] = t.getDims(2);
-    dims[3] = t.getDims(3);
-    dims[4] = t.getDims(4);
+    int shape[5] = {0};
+    shape[0] = t.getShape(0);
+    shape[1] = t.getShape(1);
+    shape[2] = t.getShape(2);
+    shape[3] = t.getShape(3);
+    shape[4] = t.getShape(4);
 
-    for(int d1_idx =0; d1_idx < dims[0]; d1_idx++)
+    for(int d1_idx =0; d1_idx < shape[0]; d1_idx++)
     {
         os << "[";
-        for(int d2_idx =0; d2_idx < dims[1]; d2_idx++)
+        for(int d2_idx =0; d2_idx < shape[1]; d2_idx++)
         {
             os << "[";
-            for(int d3_idx =0; d3_idx < dims[2]; d3_idx++)
+            for(int d3_idx =0; d3_idx < shape[2]; d3_idx++)
             {
                 os << "[";
-                for(int d4_idx = 0 ; d4_idx < dims[3] ; d4_idx++ )
+                for(int d4_idx = 0 ; d4_idx < shape[3] ; d4_idx++ )
                 {
                     if (d4_idx >0)
                         os << "   ";
                     os << "[ ";
-                    for(int d5_idx = 0 ; d5_idx < dims[4] ; d5_idx++ )
+                    for(int d5_idx = 0 ; d5_idx < shape[4] ; d5_idx++ )
                     {
                         if (d5_idx >0)
                             os << " ";
                         os << t(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) << " ";
                     }
                     os << "]";
-                    if( (t_rank > 1)&& (d4_idx != dims[3] -1) )
+                    if( (t_rank > 1) && (d4_idx != shape[3] -1) )
                         os << "\n";
                 }
                 os << "]";
-                if( (t_rank > 2)&& (d3_idx != dims[2] -1) )
+                if( (t_rank > 2) && (d3_idx != shape[2] -1) )
                     os << "\n";
             }
             os << "]";
-            if( (t_rank > 3)&& (d2_idx != dims[1] -1) )
+            if( (t_rank > 3)&& (d2_idx != shape[1] -1) )
                 os << "\n";
         }
         os << "]";
-        if( (t_rank > 4)&& (d1_idx != dims[0] -1) )
+        if( (t_rank > 4)&& (d1_idx != shape[0] -1) )
             os << "\n";
     }
     return os;
