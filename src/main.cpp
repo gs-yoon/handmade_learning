@@ -60,6 +60,7 @@ int main()
   ret = k - m;
   ret = k / m;
   ret = k * m;
+
   std::cout << ret << std::endl;
 
   return 0;

@@ -108,6 +108,114 @@ public:
     T& operator()(int i, int j, int k, int l) { return root(i,j,k,l); }
     T& operator()(int i, int j, int k, int l, int m) { return root(i,j,k,l,m); }
 
+
+    Tensor<T> operator +(int val) 
+    {
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) + val;
+        return result;
+    }
+    Tensor<T> operator +(SCALARTYPE val) 
+    {
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) + val;
+        return result;
+    }
+    Tensor<T> operator *(int val) 
+    {
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) * val;
+        return result;
+    }
+    Tensor<T> operator *(SCALARTYPE val) 
+    {
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) * val;
+        return result;
+    }
+    Tensor<T> operator -(int val) 
+    {
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) - val;
+        return result;
+    }
+    Tensor<T> operator -(SCALARTYPE val) 
+    {
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) - val;
+        return result;
+    }
+    Tensor<T> operator /(int val) 
+    {
+        if (val == 0)
+        {
+            printf("divided by 0\n");
+            return -1;
+        }
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) / val;
+        return result;
+    }
+    Tensor<T> operator /(SCALARTYPE val) 
+    {
+        if (val == 0)
+        {
+            printf("divided by 0\n");
+            return -1;
+        }
+        Tensor<T> result;
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                            result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) / val;
+        return result;
+    }
+
     Tensor<T> operator +(Tensor<T>& in) 
     {
         Tensor<T> ret;
@@ -1054,5 +1162,39 @@ std::ostream& operator<<(std::ostream& os, Tensor<T>& t)
     }
     return os;
 }
+/*
+int operator+(int i, const Tensor<float>& t)
+{
 
+}
+int operator-(int i, const Tensor<float>& t)
+{
+
+}
+int operator*(int i, const Tensor<float>& t)
+{
+
+}
+int operator/(int i, const Tensor<float>& t)
+{
+
+}
+
+float operator+(float i, const Tensor<float>& t)
+{
+
+}
+float operator-(float i, const Tensor<float>& t)
+{
+
+}
+float operator*(float i, const Tensor<float>& t)
+{
+
+}
+float operator/(float i, const Tensor<float>& t)
+{
+
+}
+*/
 #endif
