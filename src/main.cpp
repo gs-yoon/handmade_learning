@@ -14,9 +14,10 @@ Tensor f(Tensor tt){
 
 int main()
 {
-  Tensor m(1,32);
-  for (int i =0 ; i< 32; i++)
-    m(0,i) = i;
+  int size = 8;
+  Tensor m(4,4);
+  for (int i =0 ; i< 16; i++)
+    m(i/4,i%4) = i;
 
   std::cout << m << std::endl;
   Tensor k(2,2,2,2,2);
@@ -54,12 +55,12 @@ int main()
   k(1,1,1,0,1) = 7;
   k(1,1,1,1,1) = 8;
 
-  std::cout << k << std::endl;
 
-  std::cout << "transpose" << std::endl;
-  Tensor ret = m.reshape(2,2,2,2,2);
+  Tensor ret;
+  ret = softmax(m);
   std::cout << ret << std::endl;
-  ret.printShape();
+  std::cout << m.getShape(0) << std::endl;
+  std::cout << m.getShape(1) << std::endl;
 
   return 0;
 }

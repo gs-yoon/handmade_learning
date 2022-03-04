@@ -82,31 +82,36 @@ public:
     Tensor(DimensionType);
     ~Tensor();
     void makeTensor(int d1, int d2, int d3, int d4, int d5);
-    int getShape(int dim)const;
-    int* getShape()const;
+    int getRawShape(int dim)const;
+    int* getRawShape()const;
+    int getShape(int idm)const;
     int setVal();
-    int setConstant();
+    int setConstant(VALUETYPE);
     int setRandom();
+    int getSize()const;
     int rank()const;
     VALUETYPE***** getData()const;
     Tensor matMul(Tensor& );//const
     Tensor dotMul(Tensor& );//const
-    Tensor reshape(int);
-    Tensor reshape(int, int);
-    Tensor reshape(int, int, int);
-    Tensor reshape(int, int, int, int);
-    Tensor reshape(int, int, int, int, int);
+    Tensor reshape(int);//const?
+    Tensor reshape(int, int);//const?
+    Tensor reshape(int, int, int);//const?
+    Tensor reshape(int, int, int, int);//const?
+    Tensor reshape(int, int, int, int, int);//const?
+    Tensor transpose();//const?
+    Tensor flatten();//const?
     Tensor baseOp(double (*fp)(double ) ) const;
     Tensor baseOp(float p, double (*fp)(double, double )) const;
-    VALUETYPE maximum();//const
-    Tensor maximum(int dim);//const
-    VALUETYPE minimum();//const
-    Tensor minimum(int dim);//const
-    Tensor transpose();
-    Tensor log();//const
-    Tensor log10();//const
-    Tensor exp();//const
-    Tensor pow(float p);//const
+    VALUETYPE sum() const;
+    Tensor sum(int dim) const;
+    VALUETYPE max() const;
+    Tensor max(int dim) const;
+    VALUETYPE min() const;
+    Tensor min(int dim) const;
+    Tensor log();//const?
+    Tensor log10();//const?
+    Tensor exp();//const?
+    Tensor pow(float p);//const?
 
     inline void printShape()const;
 
@@ -129,7 +134,7 @@ public:
                             result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) + val;
         return result;
     }
-    Tensor operator +(SCALARTYPE val) 
+    Tensor operator +(double val) 
     {
         Tensor result;
         result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
@@ -153,7 +158,7 @@ public:
                             result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) * val;
         return result;
     }
-    Tensor operator *(SCALARTYPE val) 
+    Tensor operator *(double val) 
     {
         Tensor result;
         result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
@@ -177,7 +182,7 @@ public:
                             result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) - val;
         return result;
     }
-    Tensor operator -(SCALARTYPE val) 
+    Tensor operator -(double val) 
     {
         Tensor result;
         result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],shape_[4]);
@@ -206,7 +211,7 @@ public:
                             result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) / val;
         return result;
     }
-    Tensor operator /(SCALARTYPE val) 
+    Tensor operator /(double val) 
     {
         if (val == 0)
         {
@@ -650,25 +655,61 @@ void Tensor::breakTensor()
     }
 }
 //template<typename T>
-int* Tensor::getShape() const
+int* Tensor::getRawShape() const
 {
-
     return shape_;
-
 }
 //template<typename T>
-int Tensor::getShape(int dim) const
+int Tensor::getRawShape(int dim) const
 {
-    if (dim <= 5)
+    if (dim < 5)
     {
         return shape_[dim];
     }
     else
     {
-        printf("input parameter of getShape is out of bound\n");
+        printf("input parameter of getRawShape is out of bound\n");
         return -1;
     }
 }
+
+//template<typename T>
+int Tensor::getShape(int dim) const
+{
+    if (rank_ > dim)
+    {
+        return shape_[dim + (5 - rank_)];
+    }
+    else
+    {
+        printf("input parameter of getRawShape is out of bound\n");
+        return -1;
+    }
+}
+
+int Tensor::setVal()
+{
+
+}
+int Tensor::setConstant(VALUETYPE scalar)
+{
+    
+    for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+        for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+            for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                        root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] = scalar;
+}
+int Tensor::setRandom()
+{
+
+}
+int Tensor::getSize()const
+{
+    return shape_[0] * shape_[1] * shape_[2] * shape_[3] * shape_[4];
+}
+
 //template<typename T>
 int Tensor::rank() const
 {
@@ -1242,10 +1283,90 @@ Tensor Tensor::reshape(int d1, int d2, int d3, int d4, int d5)
     }
     return result;
 }
+
 //template<typename T>
-VALUETYPE Tensor::maximum()
+VALUETYPE Tensor::sum() const
 {
-    float temp_max = INT32_MIN;
+    VALUETYPE sum = 0;
+
+    for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+        for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+            for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                    {
+                        sum += root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                    }
+    
+    return sum;
+}
+//template<typename T>
+Tensor Tensor::sum(int dim) const
+{
+    VALUETYPE sum = 0;
+
+    Tensor result;
+    if (dim == 0)
+    {
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],1);
+    }
+    else if(dim == 1)
+    {
+        result.makeTensor(shape_[0],shape_[1],shape_[2], 1, shape_[4]);
+    }
+    else
+    {
+        printf("Expected parameter of sum(x) is 0 or 1 \n");
+        result = -1;
+        return result;
+    }
+
+    for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+    {
+        for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+        {
+            for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+            {
+                if (dim == 0)
+                {
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    {
+                        sum = 0;
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                        {
+                            sum += root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                        }
+                        result(d1_idx,d2_idx,d3_idx,d4_idx,0) = sum;
+                    }
+                }
+                else if (dim == 1)
+                {
+                    for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                    {
+                        sum = 0;
+                        for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        {
+                            sum += root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                        }
+                        result(d1_idx,d2_idx,d3_idx,0,d5_idx) = sum;
+                    }
+                }
+                else
+                {
+                    printf("Expected parameter of sum(x) is 0 or 1 \n");
+                }
+
+            }
+        }
+    }
+    
+    return result;
+}
+
+//template<typename T>
+VALUETYPE Tensor::max()const
+{
+    VALUETYPE temp_max = INT32_MIN;
 
     for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
         for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
@@ -1262,9 +1383,9 @@ VALUETYPE Tensor::maximum()
     return temp_max;
 }
 //template<typename T>
-Tensor Tensor::maximum(int dim)
+Tensor Tensor::max(int dim)const
 {
-    float temp_max = INT32_MIN;
+    VALUETYPE temp_max = INT32_MIN;
 
     Tensor result;
     if (dim == 0)
@@ -1277,7 +1398,7 @@ Tensor Tensor::maximum(int dim)
     }
     else
     {
-        printf("Expected parameter of maximum(x) is 0 or 1 \n");
+        printf("Expected parameter of max(x) is 0 or 1 \n");
         result = -1;
         return result;
     }
@@ -1320,7 +1441,7 @@ Tensor Tensor::maximum(int dim)
                 }
                 else
                 {
-                    printf("Expected parameter of maximum(x) is 0 or 1 \n");
+                    printf("Expected parameter of max(x) is 0 or 1 \n");
                 }
 
             }
@@ -1330,9 +1451,9 @@ Tensor Tensor::maximum(int dim)
     return result;
 }
 //template<typename T>
-VALUETYPE Tensor::minimum()
+VALUETYPE Tensor::min()const
 {
-    float temp_min = INT32_MAX;
+    VALUETYPE temp_min = INT32_MAX;
 
     for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
         for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
@@ -1349,7 +1470,7 @@ VALUETYPE Tensor::minimum()
     return temp_min;
 }
 //template<typename T>
-Tensor Tensor::minimum(int dim)
+Tensor Tensor::min(int dim)const
 {
     float temp_min = INT32_MAX;
 
@@ -1364,7 +1485,7 @@ Tensor Tensor::minimum(int dim)
     }
     else
     {
-        printf("Expected parameter of maximum(x) is 0 or 1 \n");
+        printf("Expected parameter of max(x) is 0 or 1 \n");
         result = -1;
         return result;
     }
@@ -1407,7 +1528,7 @@ Tensor Tensor::minimum(int dim)
                 }
                 else
                 {
-                    printf("Expected parameter of maximum(x) is 0 or 1 \n");
+                    printf("Expected parameter of max(x) is 0 or 1 \n");
                 }
 
             }
@@ -1467,6 +1588,12 @@ Tensor Tensor::transpose()
     }
     return result;
 }
+
+Tensor Tensor::flatten()
+{
+    return reshape(getSize());
+}
+
 //template<typename T>
 Tensor Tensor::log()
 {

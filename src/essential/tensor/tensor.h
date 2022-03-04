@@ -22,6 +22,48 @@ Tensor pow(const Tensor& x, double p)
 {
     return x.baseOp(p,pow);
 }
+Tensor sum(const Tensor& x)
+{
+    return x.sum();
+}
+Tensor sum(const Tensor& x, int dim)
+{
+    return x.sum(dim);    
+}
+Tensor max(const Tensor& x)
+{
+    return x.max();
+}
+Tensor max(const Tensor& x, int dim)
+{
+    return x.max(dim);
+}
+Tensor min(const Tensor& x)
+{
+    return x.min();
+}
+Tensor min(const Tensor& x, int dim)
+{
+    return x.min(dim);
+}
+/*
+Tensor maximum(const Tensor& x)
+{
+    return x.maximum(x);
+}
+Tensor maximum(const Tensor& x, int dim)
+{
+    return x.maximum(dim);
+}
+Tensor minimum(const Tensor& x)
+{
+    return x.minimum();
+}
+Tensor minimum(const Tensor& x, int dim)
+{
+    return x.minimum(dim);
+}
+*/
 
 /*************
 /* operator */
@@ -32,7 +74,7 @@ Tensor operator+(int i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -50,7 +92,7 @@ Tensor operator-(int i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -68,7 +110,7 @@ Tensor operator*(int i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -86,7 +128,7 @@ Tensor operator/(int i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -106,7 +148,7 @@ Tensor operator+(double i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -124,7 +166,7 @@ Tensor operator-(double i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -142,7 +184,7 @@ Tensor operator*(double i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -160,7 +202,7 @@ Tensor operator/(double i, const Tensor& t)
     int shape[5] = {0};
     
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     result.makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
 
@@ -182,7 +224,7 @@ std::ostream& operator<<(std::ostream& os, const Tensor& t)
     int t_rank = t.rank();
     int shape[5] = {0};
     for (int i =0 ; i< 5; i ++)
-        shape[i] = t.getShape(i);
+        shape[i] = t.getRawShape(i);
 
     for(int d1_idx =0; d1_idx < shape[0]; d1_idx++)
     {
