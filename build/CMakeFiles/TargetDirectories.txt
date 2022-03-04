@@ -1,3 +1,0 @@
-/root/workspace/handmade_learning/build/CMakeFiles/rebuild_cache.dir
-/root/workspace/handmade_learning/build/CMakeFiles/handmade_learning.dir
-/root/workspace/handmade_learning/build/CMakeFiles/edit_cache.dir

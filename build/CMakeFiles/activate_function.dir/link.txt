@@ -1,2 +1,0 @@
-/usr/bin/ar qc libactivate_function.a  CMakeFiles/activate_function.dir/src/includes/essential/activate_functions.cpp.o
-/usr/bin/ranlib libactivate_function.a
