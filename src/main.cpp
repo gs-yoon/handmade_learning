@@ -4,8 +4,9 @@
 //#include <Eigen/Dense>
 //using Eigen::MatrixXd;
 #include "essential/tensor/tensor.h"
+#include "essential/basis/functions.h"
 
-Tensor<float> f(Tensor<float> tt){
+Tensor f(Tensor tt){
   std::cout <<"ff"<<&tt<<std::endl;
   return tt;
   //std::cout << &t <<std::endl;
@@ -13,12 +14,12 @@ Tensor<float> f(Tensor<float> tt){
 
 int main()
 {
-  Tensor<float> m(1,2);
-  m(0,0) = 3;
-  m(0,1) = 1;
+  Tensor m(1,32);
+  for (int i =0 ; i< 32; i++)
+    m(0,i) = i;
 
   std::cout << m << std::endl;
-  Tensor<float> k(2,2,2,2,2);
+  Tensor k(2,2,2,2,2);
   k(0,0,0,0,0) = 1;
   k(0,0,0,1,0) = 2;
   k(0,0,0,0,1) = 3;
@@ -55,13 +56,10 @@ int main()
 
   std::cout << k << std::endl;
 
-  Tensor<float> ret;
-  ret = k + m;
-  ret = k - m;
-  ret = k / m;
-  ret = k * m;
-
+  std::cout << "transpose" << std::endl;
+  Tensor ret = m.reshape(2,2,2,2,2);
   std::cout << ret << std::endl;
+  ret.printShape();
 
   return 0;
 }
