@@ -82,13 +82,12 @@ Tensor cross_entropy_error(Tensor& y, Tensor& t)
     //return -np.sum(np.log(y[np.arange(batch_size), t] + 1e-7)) / batch_size;
     return 0-sum(t * (y -(1e-7)).log() ) / batch_size;
 }
-/*
 
-Tensor softmax_loss(X, Tensor& t)
+Tensor softmax_loss(Tensor& X, Tensor& t)
 {
+    Tensor y;
     y = softmax(X);
     return cross_entropy_error(y, t);
 }
-*/
 
 #endif

@@ -2,6 +2,7 @@
 #define __TENSOR_CORE_H__
 
 #include<stdio.h>
+#include<string.h>
 #include<math.h>
 #include<iostream>
 
@@ -100,6 +101,13 @@ public:
     Tensor reshape(int, int, int, int, int);//const?
     Tensor transpose();//const?
     Tensor flatten();//const?
+
+    Tensor extract(int i, int j);
+    Tensor extract(int i, int j, int k);
+    Tensor extract(int i, int j, int k, int l);
+    Tensor extract(int i, int j, int k, int l, int m);
+    //Tensor partialCopy(int i, int j, int k, int l, Tesnor& x);
+
     Tensor baseOp(double (*fp)(double ) ) const;
     Tensor baseOp(float p, double (*fp)(double, double )) const;
     VALUETYPE sum() const;
@@ -1592,6 +1600,106 @@ Tensor Tensor::transpose()
 Tensor Tensor::flatten()
 {
     return reshape(getSize());
+}
+
+Tensor Tensor::extract(int i, int j) 
+{
+    Tensor result;
+    if (j == -1)
+    {
+        result.makeTensor(1,1,1,1,shape_[4]);
+        memcpy( result.root_[0][0][0][0], root_[0][0][0][i], sizeof(root_[0][0][0][i])); 
+    }
+    return result;
+}
+
+Tensor Tensor::extract(int i, int j, int k)
+{
+    Tensor result;
+    if (k == -1)
+    {
+        if (j == -1)
+        {
+            result.makeTensor(1,1,1,shape_[3],shape_[4]);
+            memcpy( result.root_[0][0][0], root_[0][0][i], sizeof(root_[0][0][i])); 
+
+        }
+        else
+        {
+            result.makeTensor(1,1,1,1,shape_[4]);
+            memcpy( result.root_[0][0][0][0], root_[0][0][i][j], sizeof(root_[0][0][i][j])); 
+        }
+    }
+    else
+    {
+        printf("extract erron\n");
+    }
+    return result;
+}
+Tensor Tensor::extract(int i, int j, int k, int l)
+{
+    Tensor result;
+    if (l == -1)
+    {
+        if (k == -1)
+        {
+            if (j == -1)
+            {
+                result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
+                memcpy( result.root_[0][0], root_[0][i], sizeof(root_[0][i])); 
+            }
+            else
+            {
+                result.makeTensor(1,1,1,shape_[3],shape_[4]);
+                memcpy( result.root_[0][0][0], root_[0][i][j], sizeof(root_[0][i][j])); 
+            }
+        }
+        else
+        {
+            result.makeTensor(1,1,1,shape_[3],shape_[4]);
+            memcpy( result.root_[0][0][0][0], root_[0][i][j][k], sizeof(root_[0][i][j][k])); 
+        }
+        
+    }
+    return result;
+}
+Tensor Tensor::extract(int i, int j, int k, int l, int m) 
+{
+    Tensor result;
+    if(m == -1)
+    {
+        if (l == -1)
+        {
+            if (k == -1)
+            {
+                if (j == -1)
+                {
+                    result.makeTensor(1,shape_[1],shape_[2],shape_[3],shape_[4]);
+                    memcpy( result.root_[0], root_[i], sizeof(root_[i])); 
+                }
+                else
+                {
+                    result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
+                    memcpy( result.root_[0][0], root_[i][j], sizeof(root_[i][j])); 
+                }
+            }
+            else
+            {
+                result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
+                memcpy( result.root_[0][0][0], root_[i][j][k], sizeof(root_[i][j][k]));
+            }
+        }
+        else
+        {
+            result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
+            memcpy( result.root_[0][0][0][0], root_[i][j][k][l], sizeof(root_[i][j][k][l])); 
+        }
+    }
+    else{
+        printf("extract error\n");
+    }
+
+    return result;
 }
 
 //template<typename T>
