@@ -37,13 +37,6 @@ enum SHAPEMATCH{
 long long g_delete_cnt =0;
 long long g_make_cnt =0;
 
-struct DimensionType
-{
-    /* data */
-    int* shape;
-    int rank;
-};
-
 //template<typename T = float>
 class Tensor
 {
@@ -57,13 +50,6 @@ private:
     int valid_ = 0;
 
 private:
-    Tensor matMul1D(Tensor& );
-    Tensor matMul2D(Tensor& );
-    Tensor matMul3D(Tensor& );
-    Tensor elementWise(const Tensor&,const Tensor& ,int ,int);
-    void breakTensor();
-    int checkShape(const Tensor&) const;
-
     VALUETYPE& root()const{ return root_[0][0][0][0][0]; }
     VALUETYPE& root(int i)const{ return root_[0][0][0][0][i]; }
     VALUETYPE& root(int i, int j)const{ return root_[0][0][0][i][j]; }
@@ -71,18 +57,37 @@ private:
     VALUETYPE& root(int i, int j, int k, int l)const{ return root_[0][i][j][k][l]; }
     VALUETYPE& root(int i, int j, int k, int l, int m)const{ return root_[i][j][k][l][m]; }
 
+    Tensor matMul1D(const Tensor& )const;
+    Tensor matMul2D(const Tensor& )const;
+    Tensor matMul3D(const Tensor& )const;
+    Tensor elementWise(const Tensor&,const Tensor& ,int ,int);
+    void breakTensor();
+    int checkShape(const Tensor&) const;
+
 public:
-    Tensor();
-    Tensor(int d1);
-    Tensor(int d1, int d2);
-    Tensor(int d1, int d2, int d3);
-    Tensor(int d1, int d2, int d3, int d4);
-    Tensor(int d1, int d2, int d3, int d4, int d5);
-    Tensor(int *shape);
+    Tensor() { valid_ = 0; }
+    Tensor(int d1) { makeTensor(1,1,1,1,d1); }
+    Tensor(int d1, int d2) { makeTensor(1,1,1,d1,d2); }
+    Tensor(int d1, int d2, int d3) { makeTensor(1,1,d1,d2,d3); }
+    Tensor(int d1, int d2, int d3, int d4) { makeTensor(1,d1,d2,d3,d4); }
+    Tensor(int d1, int d2, int d3, int d4, int d5) { makeTensor(d1,d2,d3,d4,d5); }
+    Tensor(int *shape){ makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]); }
     Tensor(const Tensor& cp);
-    Tensor(DimensionType);
-    ~Tensor();
+    ~Tensor() { breakTensor(); }
+
     void makeTensor(int d1, int d2, int d3, int d4, int d5);
+
+    void makeTensor(int d1) { makeTensor(1,1,1,1,d1); }
+    void makeTensor(int d1, int d2) { makeTensor(1,1,1,d1,d2); }
+    void makeTensor(int d1, int d2, int d3) { makeTensor(1,1,d1,d2,d3); }
+    void makeTensor(int d1, int d2, int d3, int d4) { makeTensor(1,d1,d2,d3,d4); }
+    
+    void createTensor(int d1) { makeTensor(1,1,1,1,d1); }
+    void createTensor(int d1, int d2) { makeTensor(1,1,1,d1,d2); }
+    void createTensor(int d1, int d2, int d3) { makeTensor(1,1,d1,d2,d3); }
+    void createTensor(int d1, int d2, int d3, int d4) { makeTensor(1,d1,d2,d3,d4); }
+    void createTensor(int d1, int d2, int d3, int d4, int d5) { makeTensor(d1,d2,d3,d4,d5); }
+
     int getRawShape(int dim)const;
     int* getRawShape()const;
     int getShape(int idm)const;
@@ -92,13 +97,14 @@ public:
     int getSize()const;
     int rank()const;
     VALUETYPE***** getData()const;
-    Tensor matMul(Tensor& );//const
-    Tensor dotMul(Tensor& );//const
+    Tensor matMul(const Tensor& )const;
+    Tensor dotMul(const Tensor& )const;
     Tensor reshape(int);//const?
     Tensor reshape(int, int);//const?
     Tensor reshape(int, int, int);//const?
     Tensor reshape(int, int, int, int);//const?
     Tensor reshape(int, int, int, int, int);//const?
+    Tensor reshape(int*);//const?
     Tensor transpose();//const?
     Tensor flatten();//const?
 
@@ -352,43 +358,6 @@ public:
     }
 };
 
-//template<typename T>
-Tensor::Tensor()
-{
-    valid_ = 0;
-}
-//template<typename T>
-Tensor::Tensor(int d1)
-{
-    makeTensor(1,1,1,1,d1);
-}
-//template<typename T>
-Tensor::Tensor(int d1, int d2)
-{
-    makeTensor(1,1,1,d1,d2);
-}
-//template<typename T>
-Tensor::Tensor(int d1, int d2, int d3)
-{
-    makeTensor(1,1,d1,d2,d3);
-}
-//template<typename T>
-Tensor::Tensor(int d1, int d2, int d3, int d4)
-{
-    makeTensor(1,d1,d2,d3,d4);
-}
-//template<typename T>
-Tensor::Tensor(int d1, int d2, int d3, int d4, int d5)
-{
-    makeTensor(d1,d2,d3,d4,d5);
-}
-
-Tensor::Tensor(int *shape)
-{
-    makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]);
-}
-
-
 //copy constructor
 //template<typename T>
 Tensor::Tensor(const Tensor& cp)
@@ -605,11 +574,6 @@ inline void Tensor::makeTensor(int d1, int d2, int d3, int d4, int d5)
         rank_ = 0;
 }
 
-//template<typename T>
-Tensor::~Tensor()
-{
-    breakTensor();
-}
 
 //template<typename T>
 void Tensor::breakTensor()
@@ -730,23 +694,23 @@ VALUETYPE***** Tensor::getData() const
     return root_;
 }
 //template<typename T>
-Tensor Tensor::matMul(Tensor& in_tensor)
+Tensor Tensor::matMul(const Tensor& in_tensor)const
 {
     Tensor result;
 
     if ( (rank_ ==0 ) || (in_tensor.rank_ ==0) )
-        return matMul1D(in_tensor);
+        result = matMul1D(in_tensor);
     else if ((rank_ ==2 ) && (in_tensor.rank_ == 2))
-        return matMul2D(in_tensor);
+        result = matMul2D(in_tensor);
     else if ((rank_ >=3 ) && (in_tensor.rank_ >= 3))
-        return matMul3D(in_tensor);
+        result = matMul3D(in_tensor);
     else
         printf("matmul is not defined for the dimension");
-    //return result;
+    return result;
 }
 
 //template<typename T>
-Tensor Tensor::matMul1D(Tensor& in_tensor)
+Tensor Tensor::matMul1D(const Tensor& in_tensor) const
 {
     Tensor result;
     if ( (rank_ == 0 ) && (in_tensor.rank_ > 0) )
@@ -784,7 +748,7 @@ Tensor Tensor::matMul1D(Tensor& in_tensor)
 }
 
 //template<typename T>
-Tensor Tensor::matMul2D(Tensor& in_tensor)
+Tensor Tensor::matMul2D(const Tensor& in_tensor)const
 {
     Tensor result(shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
@@ -817,7 +781,7 @@ Tensor Tensor::matMul2D(Tensor& in_tensor)
 }
 
 //template<typename T>
-Tensor Tensor::matMul3D(Tensor& in_tensor)
+Tensor Tensor::matMul3D(const Tensor& in_tensor)const
 {
     Tensor result(shape_[0], shape_[1], shape_[2], shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
@@ -945,9 +909,9 @@ inline int Tensor::checkShape(const Tensor& in_tensor) const
 }
 
 //template<typename T>
-Tensor Tensor::dotMul(Tensor& in)
+Tensor Tensor::dotMul(const Tensor& in) const
 {
-    Tensor result(1);
+    Tensor result;
     int status = true;
     SCALARTYPE sum = 0;
 
@@ -960,12 +924,18 @@ Tensor Tensor::dotMul(Tensor& in)
                 sum += root(i) * in.root(i);
             }
             status = true;
+            result = sum;
         }
         else
         {
             status = false;
         }
     }
+    else
+    {
+        result = matMul(in);
+    }
+    /*
     else if ( (rank_ == 2) && (in.rank_==2))
     {
         if ( shape_[ROWIDX] == in.shape_[ROWIDX] )
@@ -985,16 +955,7 @@ Tensor Tensor::dotMul(Tensor& in)
     {
         status = false;
     }
-
-
-    if (status == true)
-    {
-        result = sum;
-    }
-    else
-    {
-        result = status;
-    }
+    */
 
     return result;
 }
@@ -1281,6 +1242,36 @@ Tensor Tensor::reshape(int d1, int d2, int d3, int d4, int d5)
                         for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
                         {
                             result( new_idx/(d2_d3_d4_d5) , (new_idx/(d3_d4_d5))%d2 , (new_idx/(d4_d5))%d3 , (new_idx / d5) % d4, new_idx % d5) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                            new_idx ++;
+                        }
+    }
+    else
+    {
+        printf("reshape error. input dimension is not matched! \n");
+        result = -1;
+    }
+    return result;
+}
+
+//template<typename T>
+Tensor Tensor::reshape(int *d)
+{
+    Tensor result;
+    int length = shape_[0] * shape_[1] * shape_[2] *shape_[3] * shape_[4];
+    if (d[0] * d[1] * d[2] * d[3] *d[4] == length)
+    {
+        int d4_d5 = d[3]*d[4];
+        int d3_d4_d5 = d[2]*d4_d5;
+        int d2_d3_d4_d5 = d[1]*d3_d4_d5;
+        int new_idx = 0;
+        result.makeTensor(d[0],d[1],d[2],d[3],d[4]);
+        for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                        {
+                            result( new_idx/(d2_d3_d4_d5) , (new_idx/(d3_d4_d5))%d[1] , (new_idx/(d4_d5))%d[2] , (new_idx / d[4]) % d[3], new_idx % d[4]) = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
                             new_idx ++;
                         }
     }

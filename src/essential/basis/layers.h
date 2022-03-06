@@ -5,8 +5,8 @@ class Layer
 private:
     VALUETYPE gradient_ =0;
 public:
-    Tensor forward(Tensor& );
-    Tensor backward(Tensor& );
+    virtual Tensor forward(Tensor& );
+    virtual Tensor backward(Tensor& );
 };
 
 class Relu : public Layer
@@ -51,26 +51,31 @@ class Sigmoid: public Layer
         return dx;
     }
 };
-/*
 class Affine: public Layer
 {
-
 private:
-    Tensor W_;
-    Tensor b_;
-    Tensor x_;
+    Tensor W_; //(output_size, input_size)
+    Tensor b_; //(output_size, input_size)
+    Tensor x_; //(input_size)
     int* original_x_shape_ =nullptr;
-    Tensor dW_;
-    Tensor db_;
-    Affine()
-    {}
+    Tensor dW_; //(output_size, input_size)
+    Tensor db_; //(output_size, input_size)
+    Affine(int input_size, int output_size)
+    {
+        W_.createTensor(output_size, input_size);
+        b_.createTensor(output_size, input_size);
+        x_.createTensor(input_size);
+        dW_.createTensor(output_size, input_size);
+        db_.createTensor(output_size, input_size);
+    }
     ~Affine()
     {}
 
     Tensor forward(Tensor& x)
     {
         original_x_shape_ = x.getRawShape();
-        x_ = x.reshape(x.getShape(0), -1);
+        //x_ = x.flatten();  flatten 아닐걸?
+        x_ = x.reshape(x.getShape(0), x.getSize() / x.getShape(0));
 
         Tensor out;
         out = x_.dotMul(W_) + b_;
@@ -90,30 +95,47 @@ private:
     }
 };
 
-class SoftmaxWithLoss:
-    def __init__(self):
-        self.loss = None
-        self.y = None # softmaxの出力
-        self.t = None # 教師データ
+class SoftmaxWithLoss: public Layer
+{
+private:
+        Tensor loss_;
+        Tensor y_;
+        Tensor t_;
 
-    def forward(self, x, t):
-        self.t = t
-        self.y = softmax(x)
-        self.loss = cross_entropy_error(self.y, self.t)
+public:
+
+    Tensor forward(Tensor& x, Tensor& t)
+    {
+        t_ = t;
+        y_ = softmax(x);
+        loss_ = cross_entropy_error(y_, t_);
         
-        return self.loss
+        return loss_;
+    }
 
-    def backward(self, dout=1):
-        batch_size = self.t.shape[0]
-        if self.t.size == self.y.size: # 教師データがone-hot-vectorの場合
-            dx = (self.y - self.t) / batch_size
-        else:
-            dx = self.y.copy()
-            dx[np.arange(batch_size), self.t] -= 1
-            dx = dx / batch_size
+    Tensor backward(Tensor& dout)
+    {
+        //dout = 1;
+        int batch_size = t_.getShape(0);
+        int t_size = t_.getSize();
+        int y_size = y_.getSize();
+
+        Tensor dx;
+        if (t_size == y_size) // 教師データがone-hot-vectorの場合
+        {
+            dx = (y_ - t_) / batch_size;
+        }
+        else
+        {
+            dx = y_;
+            //dx[np.arange(batch_size), self.t] -= 1;
+            dx = dx / batch_size;
+        }
         
-        return dx
-
+        return dx;
+    }
+};
+/*
 
 class Dropout:
     """

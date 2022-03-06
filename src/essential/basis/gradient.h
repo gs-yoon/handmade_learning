@@ -1,6 +1,6 @@
 #include "functions.h"
 
-Tensor _numerical_gradient_1d(VALUETYPE (*f)(Tensor), Tensor& x)
+Tensor _numerical_gradient_1d(VALUETYPE (*f)(Tensor), Tensor x)
 {
     float h = 1e-4; // 0.0001
     
@@ -23,7 +23,7 @@ Tensor _numerical_gradient_1d(VALUETYPE (*f)(Tensor), Tensor& x)
     return grad;
 }
 
-Tensor numerical_gradient_2d(VALUETYPE (*f)(Tensor), Tensor& X)
+Tensor numerical_gradient_2d(VALUETYPE (*f)(Tensor), Tensor X)
 {
     if (X.rank() == 1)
     {
