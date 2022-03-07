@@ -1,12 +1,18 @@
+#ifndef __LAYERS_H__
+#define __LAYERS_H__
+
 #include "gradient.h"
+#include "initializer.h"
 
 class Layer
 {
 private:
     VALUETYPE gradient_ =0;
 public:
-    virtual Tensor forward(Tensor& );
-    virtual Tensor backward(Tensor& );
+    Layer(){}
+    ~Layer(){}
+    virtual Tensor forward(Tensor& x){}
+    virtual Tensor backward(Tensor& dout){}
 };
 
 class Relu : public Layer
@@ -18,6 +24,7 @@ public:
     {
         //self.mask;
     }
+    ~Relu(){}
     Tensor forward(Tensor& x)
     {
         return relu(x);
@@ -51,31 +58,57 @@ class Sigmoid: public Layer
         return dx;
     }
 };
+
 class Affine: public Layer
 {
 private:
-    Tensor W_; //(output_size, input_size)
-    Tensor b_; //(output_size, input_size)
     Tensor x_; //(input_size)
     int* original_x_shape_ =nullptr;
-    Tensor dW_; //(output_size, input_size)
-    Tensor db_; //(output_size, input_size)
+
+public:
+    Tensor W_; //(input_size, ouput_size)
+    Tensor b_; //(input_size, ouput_size)
+    Tensor dW_; //(input_size, ouput_size)
+    Tensor db_; //(input_size, ouput_size)
+
+    void (*initializer)(Tensor&) = gaussianRandomInit;
+    
+    Affine(){}
+    ~Affine(){}
+
     Affine(int input_size, int output_size)
     {
-        W_.createTensor(output_size, input_size);
-        b_.createTensor(output_size, input_size);
+        W_.createTensor(input_size, output_size);
+        b_.createTensor(output_size);
         x_.createTensor(input_size);
-        dW_.createTensor(output_size, input_size);
-        db_.createTensor(output_size, input_size);
+        dW_.createTensor(input_size, output_size);
+        db_.createTensor(output_size);
     }
-    ~Affine()
-    {}
+
+    void init(int input_size, int output_size)
+    {
+        W_.createTensor(input_size, output_size);
+        b_.createTensor(input_size, output_size);
+        x_.createTensor(input_size);
+        dW_.createTensor(input_size, output_size);
+        db_.createTensor(input_size, output_size);
+        if (initializer != nullptr)
+        {
+            initializer(W_);
+        }
+        else
+        {
+            printf("affine init error. initializer is not defined\n");
+        }
+    }
+
 
     Tensor forward(Tensor& x)
     {
         original_x_shape_ = x.getRawShape();
         //x_ = x.flatten();  flatten 아닐걸?
-        x_ = x.reshape(x.getShape(0), x.getSize() / x.getShape(0));
+        if (x.rank() > 2)
+            x_ = x.reshape(x.getShape(0), x.getSize() / x.getShape(0));
 
         Tensor out;
         out = x_.dotMul(W_) + b_;
@@ -90,7 +123,10 @@ private:
         db_ = dout.sum(0);
         
         Tensor result;
-        result = dx.reshape(original_x_shape_);
+        if (dx.rank() > 2)
+            result = dx.reshape(original_x_shape_);
+        else
+            result = dx;
         return result;
     }
 };
@@ -103,10 +139,18 @@ private:
         Tensor t_;
 
 public:
+    SoftmaxWithLoss(){}
+    ~SoftmaxWithLoss(){}
+    void init()
+    {}
 
-    Tensor forward(Tensor& x, Tensor& t)
+    void setLabel(Tensor &t)
     {
         t_ = t;
+    }
+
+    Tensor forward(Tensor& x)
+    {
         y_ = softmax(x);
         loss_ = cross_entropy_error(y_, t_);
         
@@ -128,33 +172,68 @@ public:
         else
         {
             dx = y_;
-            //dx[np.arange(batch_size), self.t] -= 1;
+            //dx[np.arange(batch_size), self.t] -= 1; //TODO: Fix it
             dx = dx / batch_size;
+            printf("softmaxWithLoss Error\n");
         }
         
         return dx;
     }
 };
+
+class Dropout : public Layer
+{
+    //http://arxiv.org/abs/1207.0580
+private :
+    int dropout_ratio_ =50; //TODO : float -> int
+    Tensor mask_;
+    bool train_flg = true;
+
+public:
+    Dropout(float dropout_ratio)
+    {
+        dropout_ratio_ = dropout_ratio * 100;
+    }
+
+    void setTrainFlag(bool flg){
+        train_flg = flg;
+    }
+
+    Tensor dropout_atomic(double dropout_ratio)
+    {
+        return (rand()%100) > dropout_ratio? 1: 0;
+    }
+
+    Tensor forward(Tensor& x)
+    {
+        if (train_flg)
+        {
+            mask_.createTensor(x.getRawShape());
+            int shape[5] = {0};
+            
+            for (int i =0 ; i< 5; i ++)
+                shape[i] = x.getRawShape(i);
+
+            for(int d1_idx = 0 ; d1_idx < shape[0]; d1_idx++)
+                for( int d2_idx = 0; d2_idx < shape[1] ;d2_idx++)
+                    for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
+                        for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
+                            for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
+                                mask_(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = (rand()%100) > dropout_ratio_ ? 1: 0;
+        }
+        else
+        {
+            return x * (1.0 - ((float)dropout_ratio_)/100);
+        }
+    }
+
+    Tensor backward(Tensor& dout)
+    {
+        return dout * mask_;
+    }
+};
+
 /*
-
-class Dropout:
-    """
-    http://arxiv.org/abs/1207.0580
-    """
-    def __init__(self, dropout_ratio=0.5):
-        self.dropout_ratio = dropout_ratio
-        self.mask = None
-
-    def forward(self, x, train_flg=True):
-        if train_flg:
-            self.mask = np.random.rand(*x.shape) > self.dropout_ratio
-            return x * self.mask
-        else:
-            return x * (1.0 - self.dropout_ratio)
-
-    def backward(self, dout):
-        return dout * self.mask
-
 
 class BatchNormalization:
     """
@@ -328,3 +407,5 @@ class Pooling:
         
         return dx
 */
+
+#endif

@@ -1,40 +1,24 @@
 #include <iostream>
+#include "essential/model/two_layer_net.h"
+#include "essential/utils/minst_read.h"
 
-//#include "activate_functions.h"
-//#include <Eigen/Dense>
-//using Eigen::MatrixXd;
-#include "essential/tensor/tensor.h"
-#include "essential/basis/functions.h"
-#include "essential/basis/layers.h"
-
-Tensor f(Tensor tt){
-  std::cout <<"ff"<<&tt<<std::endl;
-  return tt;
-  //std::cout << &t <<std::endl;
-}
 
 int main()
 {
-  int size = 8;
-  Tensor m(4,4);
-  for (int i =0 ; i< 16; i++)
-    m(i/4,i%4) = i;
+  Tensor img;
+  ReadMNIST(10000,784,img);
 
-  std::cout << m << std::endl;
-  Tensor k;
-  k.makeTensor(2,2);
-  k(0,0) = 1;
-  k(1,0) = 2;
-  k(0,1) = 3;
-  k(1,1) = 4;
+  img.printShape();
+  //cout << img;
+  TwoLayerNet model(784, 50, 10);
+  
+  Tensor x;
+  x = img.extract(5,-1,-1);
+  cout << x;
+  cout << model.predict(x);
 
-  std::cout << "k = "<< k << std::endl;
+  int iters_num = 10000;
 
-  Tensor ret;
-  ret = softmax(m);
-  std::cout << ret << std::endl;
-  std::cout << m.getShape(0) << std::endl;
-  std::cout << m.getShape(1) << std::endl;
 
   return 0;
 }

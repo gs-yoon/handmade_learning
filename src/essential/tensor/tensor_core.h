@@ -59,7 +59,6 @@ private:
 
     Tensor matMul1D(const Tensor& )const;
     Tensor matMul2D(const Tensor& )const;
-    Tensor matMul3D(const Tensor& )const;
     Tensor elementWise(const Tensor&,const Tensor& ,int ,int);
     void breakTensor();
     int checkShape(const Tensor&) const;
@@ -73,7 +72,7 @@ public:
     Tensor(int d1, int d2, int d3, int d4, int d5) { makeTensor(d1,d2,d3,d4,d5); }
     Tensor(int *shape){ makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]); }
     Tensor(const Tensor& cp);
-    ~Tensor() { breakTensor(); }
+    ~Tensor() { if (valid_) breakTensor(); }
 
     void makeTensor(int d1, int d2, int d3, int d4, int d5);
 
@@ -82,11 +81,15 @@ public:
     void makeTensor(int d1, int d2, int d3) { makeTensor(1,1,d1,d2,d3); }
     void makeTensor(int d1, int d2, int d3, int d4) { makeTensor(1,d1,d2,d3,d4); }
     
-    void createTensor(int d1) { makeTensor(1,1,1,1,d1); }
-    void createTensor(int d1, int d2) { makeTensor(1,1,1,d1,d2); }
-    void createTensor(int d1, int d2, int d3) { makeTensor(1,1,d1,d2,d3); }
-    void createTensor(int d1, int d2, int d3, int d4) { makeTensor(1,d1,d2,d3,d4); }
-    void createTensor(int d1, int d2, int d3, int d4, int d5) { makeTensor(d1,d2,d3,d4,d5); }
+    void makeZeros(int d1, int d2, int d3, int d4, int d5);
+
+
+    void createTensor(int d1) { makeZeros(1,1,1,1,d1); }
+    void createTensor(int d1, int d2) { makeZeros(1,1,1,d1,d2); }
+    void createTensor(int d1, int d2, int d3) { makeZeros(1,1,d1,d2,d3); }
+    void createTensor(int d1, int d2, int d3, int d4) { makeZeros(1,d1,d2,d3,d4); }
+    void createTensor(int d1, int d2, int d3, int d4, int d5) { makeZeros(d1,d2,d3,d4,d5); }
+    void createTensor(int *shape){ makeZeros(shape[0],shape[1],shape[2],shape[3],shape[4]); }
 
     int getRawShape(int dim)const;
     int* getRawShape()const;
@@ -112,12 +115,20 @@ public:
     Tensor extract(int i, int j, int k);
     Tensor extract(int i, int j, int k, int l);
     Tensor extract(int i, int j, int k, int l, int m);
+
+    VALUETYPE toScalar()
+    {
+        if( rank_ ==1 )
+            return root(0);
+        else
+            printf("Invalid Converting. No Scalar");
+    }
     //Tensor partialCopy(int i, int j, int k, int l, Tesnor& x);
 
     Tensor baseOp(double (*fp)(double ) ) const;
     Tensor baseOp(float p, double (*fp)(double, double )) const;
     VALUETYPE sum() const;
-    Tensor sum(int dim) const;
+    Tensor sum(int dim) const; // TODO: to modify for support 3D 
     VALUETYPE max() const;
     Tensor max(int dim) const;
     VALUETYPE min() const;
@@ -574,6 +585,76 @@ inline void Tensor::makeTensor(int d1, int d2, int d3, int d4, int d5)
         rank_ = 0;
 }
 
+//template<typename T>
+inline void Tensor::makeZeros(int d1, int d2, int d3, int d4, int d5)
+{
+    if (valid_ == 1)
+        breakTensor();
+
+    valid_ = 1;
+    g_make_cnt ++;
+    root_ = new VALUETYPE****[d1];
+    shape_ = new int[DEFAULTMAXDIM];
+
+    for(int idx = 0 ; idx < d1 ; idx ++)
+    {
+        root_[idx] = new VALUETYPE***[d2];
+    }
+    
+    for(int ri = 0 ; ri < d1 ; ri++)
+    {
+        for( int ci = 0; ci < d2 ; ci++)
+        {
+            root_[ri][ci] = new VALUETYPE**[d3];
+        }
+    }
+
+    for(int ri = 0 ; ri < d1 ; ri++)
+    {
+        for( int ci = 0; ci < d2 ; ci++)
+        {
+            for( int di = 0; di < d3 ; di++)
+            {
+                root_[ri][ci][di] = new VALUETYPE*[d4];
+            }
+        }
+    }
+
+    for(int ri = 0 ; ri < d1 ; ri++)
+    {
+        for( int ci = 0; ci < d2 ; ci++)
+        {
+            for( int di = 0; di < d3 ; di++)
+            {
+                for(int d4i =0 ;d4i < d4 ; d4i++)
+                {
+                    root_[ri][ci][di][d4i] = new VALUETYPE[d5];
+                    memset(root_[ri][ci][di][d4i], 0, d5);
+                }
+            }
+        }
+    }
+    shape_[0] = d1;
+    shape_[1] = d2;
+    shape_[2] = d3;
+    shape_[3] = d4;
+    shape_[4] = d5;
+    row_ = d4;
+    col_ = d5;
+
+    if (d1 >1)
+        rank_ = 5;
+    else if (d2 >1)
+        rank_ = 4;
+    else if (d3 >1)
+        rank_ = 3;
+    else if (d4 >1)
+        rank_ = 2;
+    else if (d5 >1)
+        rank_ = 1;
+    else
+        rank_ = 0;
+}
 
 //template<typename T>
 void Tensor::breakTensor()
@@ -693,21 +774,6 @@ VALUETYPE***** Tensor::getData() const
 
     return root_;
 }
-//template<typename T>
-Tensor Tensor::matMul(const Tensor& in_tensor)const
-{
-    Tensor result;
-
-    if ( (rank_ ==0 ) || (in_tensor.rank_ ==0) )
-        result = matMul1D(in_tensor);
-    else if ((rank_ ==2 ) && (in_tensor.rank_ == 2))
-        result = matMul2D(in_tensor);
-    else if ((rank_ >=3 ) && (in_tensor.rank_ >= 3))
-        result = matMul3D(in_tensor);
-    else
-        printf("matmul is not defined for the dimension");
-    return result;
-}
 
 //template<typename T>
 Tensor Tensor::matMul1D(const Tensor& in_tensor) const
@@ -781,41 +847,36 @@ Tensor Tensor::matMul2D(const Tensor& in_tensor)const
 }
 
 //template<typename T>
-Tensor Tensor::matMul3D(const Tensor& in_tensor)const
+Tensor Tensor::matMul(const Tensor& in_tensor)const
 {
     Tensor result(shape_[0], shape_[1], shape_[2], shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
-    if ((rank_ >=3) && (in_tensor.rank_>=3))
+
+    if ( (shape_[0] == in_tensor.shape_[0]) 
+            && (shape_[1] == in_tensor.shape_[1])
+            && (shape_[2] == in_tensor.shape_[2])
+            && (shape_[COLIDX] == in_tensor.shape_[ROWIDX]) )
     {
-        if ( (shape_[0] == in_tensor.shape_[0]) 
-                && (shape_[1] == in_tensor.shape_[1])
-                && (shape_[2] == in_tensor.shape_[2])
-                && (shape_[COLIDX] == in_tensor.shape_[ROWIDX]) )
-        {
-            for(int d1_idx =0; d1_idx < shape_[0]; d1_idx++)
-                for(int d2_idx =0; d2_idx < shape_[1]; d2_idx++)
-                    for(int d3_idx =0; d3_idx < shape_[2]; d3_idx++)
-                        for(int i = 0 ; i < shape_[ROWIDX] ; i ++ )
+        for(int d1_idx =0; d1_idx < shape_[0]; d1_idx++)
+            for(int d2_idx =0; d2_idx < shape_[1]; d2_idx++)
+                for(int d3_idx =0; d3_idx < shape_[2]; d3_idx++)
+                    for(int i = 0 ; i < shape_[ROWIDX] ; i ++ )
+                    {
+                        for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
                         {
-                            for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
+                            sum =0 ;
+                            for(int j = 0 ; j < shape_[4] ; j ++)
                             {
-                                sum =0 ;
-                                for(int j = 0 ; j < shape_[4] ; j ++)
-                                {
-                                    sum += root(i,j) * in_tensor.root(j,k);
-                                }
-                                result(d1_idx, d2_idx, d3_idx, i , k) = sum;
+                                sum += root(i,j) * in_tensor.root(j,k);
                             }
+                            result(d1_idx, d2_idx, d3_idx, i , k) = sum;
                         }
-        }
-        else{
-            printf("Matrix shapes are not matched\n");
-        }
+                    }
     }
-    else
-    {
-        printf("Dimension Error. Use matMul1D or matMul3D\n");
+    else{
+        printf("Matrix shapes are not matched\n");
     }
+
     return result;
 }
 
@@ -928,14 +989,10 @@ Tensor Tensor::dotMul(const Tensor& in) const
         }
         else
         {
+            printf("dot product error. dimension is not mathced\n ");
             status = false;
         }
     }
-    else
-    {
-        result = matMul(in);
-    }
-    /*
     else if ( (rank_ == 2) && (in.rank_==2))
     {
         if ( shape_[ROWIDX] == in.shape_[ROWIDX] )
@@ -945,17 +1002,20 @@ Tensor Tensor::dotMul(const Tensor& in) const
                 sum += root(i,1) * in.root(i,1);
             }
             status = true;
+            result = sum;
         }
         else
         {
+            printf("dot product error. dimension is not mathced\n ");
             status = false;
         }
     }
     else
     {
-        status = false;
+        result = matMul(in);
     }
-    */
+
+
 
     return result;
 }
@@ -1305,13 +1365,19 @@ Tensor Tensor::sum(int dim) const
     VALUETYPE sum = 0;
 
     Tensor result;
+
+    if (rank_ > 2)
+    {
+        printf("summation dimension error. result is may not be correct \n");
+    }
+
     if (dim == 0)
     {
-        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],1);
+        result.makeTensor(shape_[0],shape_[1],shape_[2], 1, shape_[4]);
     }
     else if(dim == 1)
     {
-        result.makeTensor(shape_[0],shape_[1],shape_[2], 1, shape_[4]);
+        result.makeTensor(shape_[0],shape_[1],shape_[2],shape_[3],1);
     }
     else
     {
@@ -1328,18 +1394,6 @@ Tensor Tensor::sum(int dim) const
             {
                 if (dim == 0)
                 {
-                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    {
-                        sum = 0;
-                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
-                        {
-                            sum += root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
-                        }
-                        result(d1_idx,d2_idx,d3_idx,d4_idx,0) = sum;
-                    }
-                }
-                else if (dim == 1)
-                {
                     for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
                     {
                         sum = 0;
@@ -1348,6 +1402,18 @@ Tensor Tensor::sum(int dim) const
                             sum += root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
                         }
                         result(d1_idx,d2_idx,d3_idx,0,d5_idx) = sum;
+                    }
+                }
+                else if (dim == 1)
+                {
+                    for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    {
+                        sum = 0;
+                        for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                        {
+                            sum += root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                        }
+                        result(d1_idx,d2_idx,d3_idx,d4_idx,0) = sum;
                     }
                 }
                 else
@@ -1599,7 +1665,8 @@ Tensor Tensor::extract(int i, int j)
     if (j == -1)
     {
         result.makeTensor(1,1,1,1,shape_[4]);
-        memcpy( result.root_[0][0][0][0], root_[0][0][0][i], sizeof(root_[0][0][0][i])); 
+        for(int d4 =0; d4 < shape_[4]; d4++)
+            result.root_[0][0][0][0][d4] = root_[0][0][0][i][d4]; 
     }
     return result;
 }
@@ -1612,18 +1679,21 @@ Tensor Tensor::extract(int i, int j, int k)
         if (j == -1)
         {
             result.makeTensor(1,1,1,shape_[3],shape_[4]);
-            memcpy( result.root_[0][0][0], root_[0][0][i], sizeof(root_[0][0][i])); 
+            for(int d3 =0; d3 < shape_[3]; d3++)
+                for(int d4 =0; d4 < shape_[4]; d4++)
+                    result.root_[0][0][0][d3][d4] = root_[0][0][i][d3][d4]; 
 
         }
         else
         {
             result.makeTensor(1,1,1,1,shape_[4]);
-            memcpy( result.root_[0][0][0][0], root_[0][0][i][j], sizeof(root_[0][0][i][j])); 
+            for(int d4 =0; d4 < shape_[4]; d4++)
+                result.root_[0][0][0][0][d4] = root_[0][0][i][j][d4];   
         }
     }
     else
     {
-        printf("extract erron\n");
+        printf("extract error\n");
     }
     return result;
 }
@@ -1637,18 +1707,24 @@ Tensor Tensor::extract(int i, int j, int k, int l)
             if (j == -1)
             {
                 result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-                memcpy( result.root_[0][0], root_[0][i], sizeof(root_[0][i])); 
+                for(int d2 =0; d2 < shape_[2]; d2++)
+                    for(int d3 =0; d3 < shape_[3]; d3++)
+                        for(int d4 =0; d4 < shape_[4]; d4++)
+                            result.root_[0][0][d2][d3][d4] = root_[0][i][d2][d3][d4]; 
             }
             else
             {
                 result.makeTensor(1,1,1,shape_[3],shape_[4]);
-                memcpy( result.root_[0][0][0], root_[0][i][j], sizeof(root_[0][i][j])); 
+                for(int d3 =0; d3 < shape_[3]; d3++)
+                    for(int d4 =0; d4 < shape_[4]; d4++)
+                        result.root_[0][0][0][d3][d4] = root_[0][i][j][d3][d4]; 
             }
         }
         else
         {
             result.makeTensor(1,1,1,shape_[3],shape_[4]);
-            memcpy( result.root_[0][0][0][0], root_[0][i][j][k], sizeof(root_[0][i][j][k])); 
+            for(int d4 =0; d4 < shape_[4]; d4++)
+                result.root_[0][0][0][0][d4] = root_[0][i][j][k][d4]; 
         }
         
     }
@@ -1666,24 +1742,34 @@ Tensor Tensor::extract(int i, int j, int k, int l, int m)
                 if (j == -1)
                 {
                     result.makeTensor(1,shape_[1],shape_[2],shape_[3],shape_[4]);
-                    memcpy( result.root_[0], root_[i], sizeof(root_[i])); 
+                    for(int d1 =0; d1 < shape_[1]; d1++)
+                        for(int d2 =0; d2 < shape_[2]; d2++)
+                            for(int d3 =0; d3 < shape_[3]; d3++)
+                                for(int d4 =0; d4 < shape_[4]; d4++)
+                                    result.root_[0][d1][d2][d3][d4] = root_[i][d1][d2][d3][d4];
                 }
                 else
                 {
                     result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-                    memcpy( result.root_[0][0], root_[i][j], sizeof(root_[i][j])); 
+                    for(int d2 =0; d2 < shape_[2]; d2++)
+                        for(int d3 =0; d3 < shape_[3]; d3++)
+                            for(int d4 =0; d4 < shape_[4]; d4++)
+                                result.root_[0][0][d2][d3][d4] = root_[i][j][d2][d3][d4];
                 }
             }
             else
             {
                 result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-                memcpy( result.root_[0][0][0], root_[i][j][k], sizeof(root_[i][j][k]));
+                for(int d3 =0; d3 < shape_[3]; d3++)
+                    for(int d4 =0; d4 < shape_[4]; d4++)
+                        result.root_[0][0][0][d3][d4] = root_[i][j][k][d3][d4];
             }
         }
         else
         {
             result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-            memcpy( result.root_[0][0][0][0], root_[i][j][k][l], sizeof(root_[i][j][k][l])); 
+            for(int d4 =0; d4 < shape_[4]; d4++)
+                result.root_[0][0][0][0][d4] = root_[i][j][k][l][d4];
         }
     }
     else{
