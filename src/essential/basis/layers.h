@@ -362,25 +362,78 @@ class BatchNormalization:
         self.dbeta = dbeta
         
         return dx
+*/
 
+class Conv: public Layer
+{
+    //def __init__(self, W, b, stride=1, pad=0):
+private:
+    Tensor W_;
+    Tensor b_;
+    Tensor dW_;
+    Tensor db_;
+    Tensor x_;
+    int stride_;
+    int filters_;
+    int kernel_size_;
+    int kernel_half_;
 
-class Convolution:
-    def __init__(self, W, b, stride=1, pad=0):
-        self.W = W
-        self.b = b
-        self.stride = stride
-        self.pad = pad
+    Tensor pad_;
+    Tensor col_;
+    Tensor col_W_;
+
+public:
+    Conv(){}
+    ~Conv(){}
+    Conv(int filters, int kernel_size, int* input_shape , int stride)
+    {
+        filters_ = filters;
+        kernel_size_ = kernel_size;
+        kernel_half_ = kernel_size/2;
+        W_.createTensor(filters, kernel_size, kernel_size);
+        dW_.createTensor(filters, kernel_size, kernel_size);
+        b_.createTensor(filters, kernel_size, kernel_size);
+        db_.createTensor(filters, kernel_size, kernel_size);
+        x_.createTensor(input_shape);
+        int stride_ = stride;
+    }
+
+    Tensor forward(Tensor& x)
+    {
         
-        # 中間データ（backward時に使用）
-        self.x = None   
-        self.col = None
-        self.col_W = None
-        
-        # 重み・バイアスパラメータの勾配
-        self.dW = None
-        self.db = None
+        int* w_shape = W_.getRawShape();
+        int* x_shape = x_.getRawShape();
+        int row = x_shape[3];
+        int col = x_shape[4];
 
-    def forward(self, x):
+        Tensor result;
+        result.createTensor(filters_,row,col); // how to 3d images? (color images)
+
+        for(int ri = kernel_half_ ; ri < row - kernel_half_; ri += stride_)
+        {
+            for(int ci = kernel_half_ ; ci < col - kernel_half_; ci += stride_)
+            {
+//                for(int d1_idx = 0 ; d1_idx < w_shape[0]; d1_idx++)
+//                    for( int d2_idx = 0; d2_idx < w_shape[1] ;d2_idx++)
+                int ri_k = ri - kernel_half_;
+                int ci_k = ci - kernel_half_;
+                for( int d3_idx = 0; d3_idx < w_shape[2] ;d3_idx++) //filter num
+                {
+                    for( int d4_idx = 0; d4_idx < w_shape[3] ; d4_idx++)
+                    {
+                        if (ri_k +d4_idx < row)
+                        {
+                            for( int d5_idx = 0; d5_idx < w_shape[4] ;d5_idx++)
+                            {
+                                if (ci_k + d5_idx < col)
+                                    result(d3_idx, ri_k, ci_k) = x(d3_idx, ri_k + d4_idx, ci_k + d5_idx ) * W_(d3_idx,d4_idx,d5_idx);
+                            }
+                        }
+                    }
+                }
+            }
+        }                           
+
         FN, C, FH, FW = self.W.shape
         N, C, H, W = x.shape
         out_h = 1 + int((H + 2*self.pad - FH) / self.stride)
@@ -397,7 +450,7 @@ class Convolution:
         self.col_W = col_W
 
         return out
-
+    }
     def backward(self, dout):
         FN, C, FH, FW = self.W.shape
         dout = dout.transpose(0,2,3,1).reshape(-1, FN)
@@ -451,6 +504,5 @@ class Pooling:
         dx = col2im(dcol, self.x.shape, self.pool_h, self.pool_w, self.stride, self.pad)
         
         return dx
-*/
-
+}
 #endif
