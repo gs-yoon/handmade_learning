@@ -2,8 +2,8 @@
 #define __TENSOR_CORE_H__
 
 #include<stdio.h>
-#include<string.h>
 #include<math.h>
+#include<algorithm>
 #include<iostream>
 
 #define TENSORDEBUG 0
@@ -12,7 +12,7 @@
 #define COLIDX 4
 
 typedef float SCALARTYPE;
-typedef float VALUETYPE;
+typedef double VALUETYPE;
 
 enum OPERATIONS{
     SUM=0,
@@ -118,10 +118,10 @@ public:
 
     VALUETYPE toScalar()
     {
-        if( rank_ ==1 )
+        if( rank_ ==0 )
             return root(0);
         else
-            printf("Invalid Converting. No Scalar");
+            printf("Invalid Converting. No Scalar\n");
     }
     //Tensor partialCopy(int i, int j, int k, int l, Tesnor& x);
 
@@ -129,6 +129,7 @@ public:
     Tensor baseOp(float p, double (*fp)(double, double )) const;
     VALUETYPE sum() const;
     Tensor sum(int dim) const; // TODO: to modify for support 3D 
+    int argmax() const;
     VALUETYPE max() const;
     Tensor max(int dim) const;
     VALUETYPE min() const;
@@ -260,9 +261,14 @@ public:
         int shape_status = in.checkShape(*this);
         if (shape_status >0)
             ret = elementWise(*this, in, shape_status, SUM);
-        shape_status = checkShape(in) ;
-        if (shape_status >0)
-            ret = elementWise(in,*this, shape_status, SUM);
+        else
+        {
+            shape_status = checkShape(in) ;
+            if (shape_status >0)
+                ret = elementWise(in,*this, shape_status, SUM);
+            else
+                printf("elementWise error\n");
+        }
         return ret;
     }
 
@@ -272,9 +278,14 @@ public:
         int shape_status = in.checkShape(*this);
         if (shape_status >0)
             ret = elementWise(*this, in, shape_status, MUL);
-        shape_status = checkShape(in) ;
-        if (shape_status >0)
-            ret = elementWise(in,*this, shape_status, MUL);
+        else
+        {
+            shape_status = checkShape(in) ;
+            if (shape_status >0)
+                ret = elementWise(in,*this, shape_status, MUL);
+            else
+                printf("elementWise error\n");
+        }
         return ret;
     }
     Tensor operator -(const Tensor& in) 
@@ -283,9 +294,8 @@ public:
         int shape_status = in.checkShape(*this);
         if (shape_status >0)
             ret = elementWise(*this, in, shape_status, SUB);
-        shape_status = checkShape(in) ;
-        if (shape_status >0)
-            ret = elementWise(in,*this, shape_status, SUB);
+        else
+            printf("element wise error.\n");
         return ret;
     }
     Tensor operator /(const Tensor& in) 
@@ -294,14 +304,13 @@ public:
         int shape_status = in.checkShape(*this);
         if (shape_status >0)
             ret = elementWise(*this, in, shape_status, DIV);
-        shape_status = checkShape(in) ;
-        if (shape_status >0)
-            ret = elementWise(in,*this, shape_status, DIV);
+        else
+            printf("element wise error.\n");
         return ret;
     }
 
     Tensor& operator=(const Tensor& cp);
-    Tensor& operator=(const SCALARTYPE scalar);
+    Tensor& operator=(const VALUETYPE scalar);
     Tensor& operator=(const int scalar);
     Tensor& operator=(const bool scalar);
 
@@ -409,13 +418,14 @@ Tensor::Tensor(const Tensor& cp)
         for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
             for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
                 for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
-                        root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;
+                    std::copy(cp.root_[d1_idx][d2_idx][d3_idx][d4_idx], cp.root_[d1_idx][d2_idx][d3_idx][d4_idx] + shape_[4], root_[d1_idx][d2_idx][d3_idx][d4_idx]) ;
+                    //for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
+                    //    root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;//copyc
 }
 
 //assign constructor
 //template<typename T>
-Tensor& Tensor::operator=(const SCALARTYPE scalar)
+Tensor& Tensor::operator=(const VALUETYPE scalar)
 {
     if (valid_ == true)
     {
@@ -475,6 +485,7 @@ Tensor& Tensor::operator=(const bool scalar)
 //template<typename T>
 Tensor& Tensor::operator=(const Tensor& cp)
 {
+    bool equal = false;
     #if TENSORDEBUG
     printf("====\n");
     #endif
@@ -482,7 +493,6 @@ Tensor& Tensor::operator=(const Tensor& cp)
     {
         makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
-
     else if ((root_ == nullptr) || (shape_== nullptr))
     {
         #if TENSORDEBUG
@@ -493,26 +503,38 @@ Tensor& Tensor::operator=(const Tensor& cp)
         makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
     }
     else{
-        #if TENSORDEBUG
-        printf("Rebuilding Tensor...\n");
-        #endif
-        breakTensor();
-        makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]);
+        if (checkShape(cp) == SHAPE_EQUAL)
+        {
+            equal = true;
+        }
+        else
+        {
+            #if TENSORDEBUG
+            printf("Rebuilding Tensor...\n");
+            #endif
+            breakTensor();
+            makeTensor(cp.shape_[0],cp.shape_[1],cp.shape_[2],cp.shape_[3],cp.shape_[4]); // TODO : segmentation fault, why?
+        }
     }
 
-    rank_ = cp.rank_;
-    for( int i =0 ;i < 5 ; i++)
+    if(equal == false)
     {
-        shape_[i] = cp.shape_[i];
+        rank_ = cp.rank_;
+        for( int i =0 ;i < 5 ; i++)
+        {
+            shape_[i] = cp.shape_[i];
+        }
     }
-    printf("\n ");
-
     for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
         for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
             for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
                 for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
-                        root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;
+                    std::copy(cp.root_[d1_idx][d2_idx][d3_idx][d4_idx], cp.root_[d1_idx][d2_idx][d3_idx][d4_idx] + shape_[4], root_[d1_idx][d2_idx][d3_idx][d4_idx]) ;
+                    //for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
+                    //    root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;
+    
+    //int tensor_size = shape_[0] *shape_[1] *shape_[2] *shape_[3] *shape_[4];
+    //std::copy(cp.root_, cp.root_ + tensor_size, root_);
 
     return *this;
 }
@@ -629,7 +651,10 @@ inline void Tensor::makeZeros(int d1, int d2, int d3, int d4, int d5)
                 for(int d4i =0 ;d4i < d4 ; d4i++)
                 {
                     root_[ri][ci][di][d4i] = new VALUETYPE[d5];
-                    memset(root_[ri][ci][di][d4i], 0, d5);
+                    std::fill(root_[ri][ci][di][d4i], root_[ri][ci][di][d4i]+ d5, 0x00);
+                    //for(int d5_idx = 0 ; d5_idx < d5 ; d5_idx++)
+                     //   root_[ri][ci][di][d4i][d5_idx] = 0;
+                    //memset(root_[ri][ci][di][d4i], 0x00, sizeof(root_[ri][ci][di][d4i]));
                 }
             }
         }
@@ -760,6 +785,8 @@ int Tensor::setRandom()
 }
 int Tensor::getSize()const
 {
+    if(shape_ == nullptr)
+        printf("getSize error. shape is null\n");
     return shape_[0] * shape_[1] * shape_[2] * shape_[3] * shape_[4];
 }
 
@@ -874,7 +901,8 @@ Tensor Tensor::matMul(const Tensor& in_tensor)const
                     }
     }
     else{
-        printf("Matrix shapes are not matched\n");
+        printf("MatMul Error. Matrix shapes are not matched\n");
+        printf("col == %d , row == %d\n ",shape_[COLIDX], in_tensor.shape_[ROWIDX]);
     }
 
     return result;
@@ -974,7 +1002,7 @@ Tensor Tensor::dotMul(const Tensor& in) const
 {
     Tensor result;
     int status = true;
-    SCALARTYPE sum = 0;
+    VALUETYPE sum = 0;
 
     if ( (rank_ == 1) && (in.rank_==1))
     {
@@ -1428,6 +1456,25 @@ Tensor Tensor::sum(int dim) const
     return result;
 }
 
+int Tensor::argmax()const
+{
+    VALUETYPE temp_max = INT32_MIN;
+    int midx = 0;
+
+    for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
+        for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
+            for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
+                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
+                    {
+                        if ( temp_max < root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx))
+                        {
+                            temp_max = root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                            midx = d5_idx;
+                        }
+                    }    
+    return midx;
+}
 //template<typename T>
 VALUETYPE Tensor::max()const
 {

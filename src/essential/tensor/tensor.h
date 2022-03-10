@@ -18,11 +18,16 @@ Tensor exp(const Tensor& x)
     return x.baseOp(exp);
 }
 
+Tensor abs(const Tensor& x)
+{
+    return x.baseOp(abs);
+}
+
 Tensor pow(const Tensor& x, double p)
 {
     return x.baseOp(p,pow);
 }
-Tensor sum(const Tensor& x)
+VALUETYPE sum(const Tensor& x)
 {
     return x.sum();
 }
@@ -30,7 +35,7 @@ Tensor sum(const Tensor& x, int dim)
 {
     return x.sum(dim);    
 }
-Tensor max(const Tensor& x)
+VALUETYPE max(const Tensor& x)
 {
     return x.max();
 }
@@ -64,6 +69,17 @@ Tensor minimum(const Tensor& x, int dim)
     return x.minimum(dim);
 }
 */
+
+void updateWithGradient(Tensor& w, Tensor& dw, float lr )
+{
+    int* shape = w.getRawShape();
+    for(int d1_idx = 0 ; d1_idx < shape[0]; d1_idx++)
+        for( int d2_idx = 0; d2_idx < shape[1] ;d2_idx++)
+            for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
+                for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
+                        w(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) -= lr*dw(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+}
 
 /*************
 /* operator */
@@ -101,7 +117,7 @@ Tensor operator-(int i, const Tensor& t)
             for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
                 for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
                     for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
-                        result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = i + t(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                        result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = i - t(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
     return result;
 }
 Tensor operator*(int i, const Tensor& t)
@@ -175,7 +191,7 @@ Tensor operator-(double i, const Tensor& t)
             for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
                 for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
                     for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
-                        result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = i + t(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                        result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = i - t(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
     return result;
 }
 Tensor operator*(double i, const Tensor& t)
@@ -262,6 +278,7 @@ std::ostream& operator<<(std::ostream& os, const Tensor& t)
         if( (t_rank > 4)&& (d1_idx != shape[0] -1) )
             os << "\n";
     }
+    os << "\n";
     return os;
 }
 

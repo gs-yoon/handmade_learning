@@ -26,7 +26,7 @@ void gaussianRandomInit(Tensor& w)
             for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
                 for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
                     for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
-                        w(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = (VALUETYPE)gaussianRandom();
+                        w(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = gaussianRandom()/10.0;//(VALUETYPE)((double) (rand()%100 )/ 1000);
 }
 
 #endif

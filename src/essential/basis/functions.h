@@ -23,7 +23,7 @@ Tensor step_function(Tensor& x)
 
 Tensor sigmoid(Tensor& x)
 {
-    return 1 / (1 + exp( (0-x) ));
+    return 1 / (1 + exp( (x*(-1)) ));
 }
 
 Tensor sigmoid_grad(Tensor& x)
@@ -43,7 +43,7 @@ Tensor relu(Tensor& x)
 
 inline double relu_grad_atomic(double x)
 {
-    return (x >= 0);
+    return x <= 0? true : false;
 }
 
 Tensor relu_grad(Tensor& x)
@@ -57,6 +57,7 @@ Tensor softmax(Tensor& x)
 {
     Tensor x_c;
     x_c = x - x.max(0);
+    //std::cout << x;
     return x_c.exp() / x_c.exp().sum();
 }
 
@@ -78,9 +79,11 @@ Tensor cross_entropy_error(Tensor& y, Tensor& t)
     //if (t_size == y_size)
     //    t = t.argmax(axis=1);
              
-    int batch_size = y.getShape(0);
+    int batch_size = 1;// y.getShape(0);
     //return -np.sum(np.log(y[np.arange(batch_size), t] + 1e-7)) / batch_size;
-    return 0-sum(t * (y - (1e-7)).log() ) / batch_size;
+    Tensor result;
+    result = ( sum(t * (y + (1e-9)).log())*(-1) ) / (float)batch_size;
+    return result;
 }
 
 Tensor softmax_loss(Tensor& X, Tensor& t)

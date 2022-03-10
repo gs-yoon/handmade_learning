@@ -11,14 +11,12 @@ private:
 public:
     Layer(){}
     ~Layer(){}
-    virtual Tensor forward(Tensor& x){}
-    virtual Tensor backward(Tensor& dout){}
 };
 
 class Relu : public Layer
 {
 private:
-
+    Tensor mask_;
 public:
     Relu()
     {
@@ -27,12 +25,36 @@ public:
     ~Relu(){}
     Tensor forward(Tensor& x)
     {
-        return relu(x);
+        Tensor result;
+        int* shape = x.getRawShape();
+
+        result.createTensor(shape);
+        mask_.createTensor(shape);
+        
+
+        for(int d1_idx = 0 ; d1_idx < shape[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < shape[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
+                        {
+                            if (x(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) > 0)
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = x(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+                                mask_(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) =1;
+                            }
+                            else
+                            {
+                                result(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = 0;
+                                mask_(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) =0;
+                            }
+                        }
+        return result;
     }
 
     Tensor backward(Tensor& dout)
     {
-        return relu_grad(dout);
+        return dout * mask_;
     }
 };
 
@@ -41,8 +63,8 @@ class Sigmoid: public Layer
     private:
     Tensor out_;
     public:
-    Sigmoid();
-    ~Sigmoid();
+    Sigmoid() {}
+    ~Sigmoid() {}
 
     Tensor forward(Tensor& x)
     {
@@ -53,7 +75,7 @@ class Sigmoid: public Layer
     Tensor backward(Tensor& dout)
     {
         Tensor dx;
-        dx = dout * (1.0 - out_) * out_;
+        dx = dout * ((1.0 - out_) * out_);
 
         return dx;
     }
@@ -62,10 +84,10 @@ class Sigmoid: public Layer
 class Affine: public Layer
 {
 private:
-    Tensor x_; //(input_size)
     int* original_x_shape_ =nullptr;
 
 public:
+    Tensor x_; //(input_size)
     Tensor W_; //(input_size, ouput_size)
     Tensor b_; //(input_size, ouput_size)
     Tensor dW_; //(input_size, ouput_size)
@@ -83,18 +105,28 @@ public:
         x_.createTensor(input_size);
         dW_.createTensor(input_size, output_size);
         db_.createTensor(output_size);
+        if (initializer != nullptr)
+        {
+            initializer(W_);
+            initializer(b_);
+        }
+        else
+        {
+            printf("affine init error. initializer is not defined\n");
+        }
     }
 
     void init(int input_size, int output_size)
     {
         W_.createTensor(input_size, output_size);
-        b_.createTensor(input_size, output_size);
+        b_.createTensor(output_size);
         x_.createTensor(input_size);
         dW_.createTensor(input_size, output_size);
-        db_.createTensor(input_size, output_size);
+        db_.createTensor(output_size);
         if (initializer != nullptr)
         {
             initializer(W_);
+            initializer(b_);
         }
         else
         {
@@ -106,28 +138,40 @@ public:
     Tensor forward(Tensor& x)
     {
         original_x_shape_ = x.getRawShape();
-        //x_ = x.flatten();  flatten 아닐걸?
-        if (x.rank() > 2)
-            x_ = x.reshape(x.getShape(0), x.getSize() / x.getShape(0));
+        //int batch_size = x.getShape(0);
+        int batch_size = 1;
+        //x_ = x.reshape(batch_size, x.getSize() / batch_size);
+        x_ = x.flatten();
+        //if (x.rank() >=2)
+        //    x_ = x.flatten();//  flatten 아닐걸?
 
         Tensor out;
         out = x_.dotMul(W_) + b_;
-
         return out;
     }
     Tensor backward(Tensor& dout)
     {
         Tensor dx;
+        Tensor result;
+
+        //std::cout << "affine "<< std::endl;
+        //std::cout << "dout shape =  ";
+        //dout.printShape();
+        //std::cout << "x_T shape =  ";
+        //x_.transpose().printShape();
+        //std::cout << "W_T shape =  ";
+        //W_.transpose().printShape();
+
         dx = dout.dotMul(W_.transpose());
         dW_ = x_.transpose().dotMul(dout);
-        db_ = dout.sum(0);
-        
-        Tensor result;
-        if (dx.rank() > 2)
-            result = dx.reshape(original_x_shape_);
-        else
-            result = dx;
-        return result;
+
+        //db_ = dout.sum(0);
+        db_ = dout;
+        //if (dx.rank() != x_.rank())
+        //    result = dx.reshape(original_x_shape_);
+        //else
+        result = dx;
+        return dx;
     }
 };
 
@@ -149,10 +193,10 @@ public:
         t_ = t;
     }
 
-    Tensor forward(Tensor& x)
+    Tensor forward(Tensor& x, Tensor& t)
     {
         y_ = softmax(x);
-        loss_ = cross_entropy_error(y_, t_);
+        loss_ = cross_entropy_error(y_, t);
         
         return loss_;
     }
@@ -160,20 +204,21 @@ public:
     Tensor backward(Tensor& dout)
     {
         //dout = 1;
-        int batch_size = t_.getShape(0);
+        int batch_size = 1;//t_.getShape(0);
         int t_size = t_.getSize();
         int y_size = y_.getSize();
-
         Tensor dx;
         if (t_size == y_size) // 教師データがone-hot-vectorの場合
         {
-            dx = (y_ - t_) / batch_size;
+            dx = (y_ - t_) / (float)batch_size;
         }
         else
         {
             dx = y_;
+            int t_idx = t_.toScalar();
+            dx(t_idx) -= 1;
             //dx[np.arange(batch_size), self.t] -= 1; //TODO: Fix it
-            dx = dx / batch_size;
+            dx = dx / (float)batch_size;
             printf("softmaxWithLoss Error\n");
         }
         
