@@ -363,7 +363,7 @@ class BatchNormalization:
         
         return dx
 */
-
+/*
 class Conv: public Layer
 {
     //def __init__(self, W, b, stride=1, pad=0):
@@ -474,4 +474,5 @@ class MaxPooling:
         
         return dx
 }
+*/
 #endif
