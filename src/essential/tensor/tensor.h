@@ -81,6 +81,21 @@ void updateWithGradient(Tensor& w, Tensor& dw, float lr )
                         w(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) -= lr*dw(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
 }
 
+Tensor padding(Tensor& x, int pad_size )
+{
+    Tensor result;
+    int* x_shape = x.getRawShape();
+    
+    result.createTensor(x_shape[0],x_shape[1],x_shape[2],x_shape[3] + pad_size*2 ,x_shape[4] + pad_size * 2);
+    for(int d1_idx = 0 ; d1_idx < x_shape[0]; d1_idx++)
+        for( int d2_idx = 0; d2_idx < x_shape[1] ;d2_idx++)
+            for( int d3_idx = 0; d3_idx < x_shape[2] ;d3_idx++)
+                for( int d4_idx = 0; d4_idx < x_shape[3] ; d4_idx++)
+                    for( int d5_idx = 0; d5_idx < x_shape[4] ;d5_idx++)
+                        result(d1_idx,d2_idx,d3_idx,d4_idx+pad_size,d5_idx+pad_size) = x(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+    return result;
+}
+
 /*************
 /* operator */
 /*************/

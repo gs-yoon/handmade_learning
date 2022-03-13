@@ -93,4 +93,44 @@ Tensor softmax_loss(Tensor& X, Tensor& t)
     return cross_entropy_error(y, t);
 }
 
+Tensor convolution(const Tensor&x, const Tensor& w, int filters, int kernel_size, int stride)
+{
+    Tensor result;
+    int* w_shape = w.getRawShape();
+    int* x_shape = x.getRawShape();
+    int row = x_shape[3];
+    int col = x_shape[4];
+    int kernel_half = kernel_size/2;
+
+    result.createTensor(filters,row,col); // how to 3d images? (color images)
+
+    for(int ri = kernel_half ; ri < row - kernel_half; ri += stride)
+    {
+        for(int ci = kernel_half ; ci < col - kernel_half; ci += stride)
+        {
+//                for(int d1_idx = 0 ; d1_idx < w_shape[0]; d1_idx++)
+//                    for( int d2_idx = 0; d2_idx < w_shape[1] ;d2_idx++)
+            int ri_k = ri - kernel_half;
+            int ci_k = ci - kernel_half;
+            for( int d3_idx = 0; d3_idx < w_shape[2] ;d3_idx++) //filter num
+            {
+                for( int d4_idx = 0; d4_idx < w_shape[3] ; d4_idx++)
+                {
+                    if (ri_k +d4_idx < row)
+                    {
+                        for( int d5_idx = 0; d5_idx < w_shape[4] ;d5_idx++)
+                        {
+                            if (ci_k + d5_idx < col)
+                                result(d3_idx, ri_k, ci_k) = x(d3_idx, ri_k + d4_idx, ci_k + d5_idx ) * w(d3_idx,d4_idx,d5_idx);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+
 #endif

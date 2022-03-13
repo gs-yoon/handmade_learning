@@ -400,62 +400,30 @@ public:
 
     Tensor forward(Tensor& x)
     {
-        
-        int* w_shape = W_.getRawShape();
-        int* x_shape = x_.getRawShape();
-        int row = x_shape[3];
-        int col = x_shape[4];
-
-        Tensor result;
-        result.createTensor(filters_,row,col); // how to 3d images? (color images)
-
-        for(int ri = kernel_half_ ; ri < row - kernel_half_; ri += stride_)
-        {
-            for(int ci = kernel_half_ ; ci < col - kernel_half_; ci += stride_)
-            {
-//                for(int d1_idx = 0 ; d1_idx < w_shape[0]; d1_idx++)
-//                    for( int d2_idx = 0; d2_idx < w_shape[1] ;d2_idx++)
-                int ri_k = ri - kernel_half_;
-                int ci_k = ci - kernel_half_;
-                for( int d3_idx = 0; d3_idx < w_shape[2] ;d3_idx++) //filter num
-                {
-                    for( int d4_idx = 0; d4_idx < w_shape[3] ; d4_idx++)
-                    {
-                        if (ri_k +d4_idx < row)
-                        {
-                            for( int d5_idx = 0; d5_idx < w_shape[4] ;d5_idx++)
-                            {
-                                if (ci_k + d5_idx < col)
-                                    result(d3_idx, ri_k, ci_k) = x(d3_idx, ri_k + d4_idx, ci_k + d5_idx ) * W_(d3_idx,d4_idx,d5_idx);
-                            }
-                        }
-                    }
-                }
-            }
-        }                           
-
-        FN, C, FH, FW = self.W.shape
-        N, C, H, W = x.shape
-        out_h = 1 + int((H + 2*self.pad - FH) / self.stride)
-        out_w = 1 + int((W + 2*self.pad - FW) / self.stride)
-
-        col = im2col(x, FH, FW, self.stride, self.pad)
-        col_W = self.W.reshape(FN, -1).T
-
-        out = np.dot(col, col_W) + self.b
-        out = out.reshape(N, out_h, out_w, -1).transpose(0, 3, 1, 2)
-
-        self.x = x
-        self.col = col
-        self.col_W = col_W
-
-        return out
+        x_ = x;
+        return convolution(x, W_, filters_, kernel_size_, stride_);
     }
-    def backward(self, dout):
+    Tensor backward(Tensor& dout)
+    {
+        Tensor dx;
+
+        dx = convolution( padding(dout,kernel_half_), W_.transpose(), filters_, kernel_size_, stride_);
+        
+        Tensor dout_x;
+        dout_x = x_ * dout;
+        
+        int* x_shape = x_.getRawShape();
+        
+        for(int d1_idx = 0 ; d1_idx < x_shape[0]; d1_idx++)
+            for( int d2_idx = 0; d2_idx < x_shape[1] ;d2_idx++)
+                for( int d3_idx = 0; d3_idx < x_shape[2] ;d3_idx++)
+                    for( int d4_idx = 0; d4_idx < x_shape[3] ; d4_idx++)
+                        for( int d5_idx = 0; d5_idx < x_shape[4] ;d5_idx++)
+
         FN, C, FH, FW = self.W.shape
         dout = dout.transpose(0,2,3,1).reshape(-1, FN)
 
-        self.db = np.sum(dout, axis=0)
+        self.db = dout.sum(0)//np.sum(dout, axis=0)
         self.dW = np.dot(self.col.T, dout)
         self.dW = self.dW.transpose(1, 0).reshape(FN, C, FH, FW)
 
@@ -463,9 +431,10 @@ public:
         dx = col2im(dcol, self.x.shape, FH, FW, self.stride, self.pad)
 
         return dx
+    }
 
 
-class Pooling:
+class MaxPooling:
     def __init__(self, pool_h, pool_w, stride=2, pad=0):
         self.pool_h = pool_h
         self.pool_w = pool_w
