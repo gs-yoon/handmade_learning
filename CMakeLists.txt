@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.8)
-project( handmade_learning )
+cmake_minimum_required(VERSION 3.8)
+project( handmade_learning LANGUAGES CXX CUDA)
 find_package( OpenCV 4.0 REQUIRED )
-
+enable_language(CUDA)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 include_directories( ${CMAKE_SOURCE_DIR}/dependencies/eigen-3.4.0
@@ -13,11 +13,11 @@ include_directories( ${CMAKE_SOURCE_DIR}/dependencies/eigen-3.4.0
 
 file(GLOB SOURCES
     "src/*.cpp"
+    "src/*.cu"
     "src/essential/basefunc/*.cpp"
     "src/essential/network/*.cpp"
     "src/essential/tensor/*.cpp"
 )
-
 add_executable( handmade_learning ${SOURCES} )
 
 target_link_libraries( handmade_learning ${OpenCV_LIBS} )
