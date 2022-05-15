@@ -73,12 +73,38 @@ Tensor minimum(const Tensor& x, int dim)
 void updateWithGradient(Tensor& w, Tensor& dw, float lr )
 {
     int* shape = w.getRawShape();
-    for(int d1_idx = 0 ; d1_idx < shape[0]; d1_idx++)
-        for( int d2_idx = 0; d2_idx < shape[1] ;d2_idx++)
-            for( int d3_idx = 0; d3_idx < shape[2] ;d3_idx++)
-                for( int d4_idx = 0; d4_idx < shape[3] ; d4_idx++)
-                    for( int d5_idx = 0; d5_idx < shape[4] ;d5_idx++)
-                        w(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) -= lr*dw(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
+    int size = w.getSize();
+#if SIMDENABLE
+    VALUETYPE* w_root = w.getData();
+    VALUETYPE* dw_root = dw.getData();
+    __m128 lr_duplicate;
+    lr_duplicate = _mm_set1_ps(lr); // very expensive! 
+    int i =0;
+    for (int l =0 ; l < size / 4 ; l++)
+    {
+        __m128 w_128;
+        __m128 dw_128;
+        __m128 mulres; 
+        __m128 res; 
+        ALIGN float res_float[4] = {0};
+        w_128 = _mm_load_ps(w_root + i);
+        dw_128 = _mm_load_ps(dw_root + i);
+        mulres = _mm_mul_ps(dw_128, lr_duplicate); // substantial calculations.
+        res = _mm_sub_ps(w_128,mulres);
+        _mm_store_ps(w_root + i, res); // expensive ! relocate the result data from __m128 into float*. 
+        i +=4;
+        if( i >= size )
+            break;
+    }
+    for ( int i = size / 4 * 4 ; i < size ; i ++)
+    {
+        w(i) -= lr*dw(i);
+    }
+
+#else
+    for (int i =0 ; i < size ; i++)
+        w(i) -= lr*dw(i);
+#endif
 }
 
 Tensor padding(Tensor& x, int pad_size )

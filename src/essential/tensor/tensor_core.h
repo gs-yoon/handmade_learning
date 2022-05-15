@@ -5,16 +5,23 @@
 #include<math.h>
 #include<algorithm>
 #include<iostream>
+#include <unistd.h> // unix defined library.
+#include <immintrin.h> // Intel core SIMD intrinsic instructions. 
+#include <pmmintrin.h> // SSE3
 //#include"cuda_utils.h"
 
 #define TENSORDEBUG 0
 #define CUDAENABLE 0
+#define SIMDENABLE 1
 #define DEFAULTMAXDIM 5
 #define ROWIDX 3
 #define COLIDX 4
 
+#define ALIGN alignas(16) // macro for aligned memory
+
+
 typedef float SCALARTYPE;
-typedef double VALUETYPE;
+typedef float VALUETYPE;
 
 enum OPERATIONS{
     SUM=0,
@@ -123,7 +130,7 @@ public:
     Tensor reshape(int, int, int, int);//const?
     Tensor reshape(int, int, int, int, int);//const?
     Tensor reshape(int*);//const?
-    Tensor transpose();//const?
+    Tensor transpose() const;
     Tensor flatten();//const?
 
     Tensor extract(int i, int j);
@@ -573,7 +580,7 @@ inline void Tensor::makeTensor(int d1, int d2, int d3, int d4, int d5)
     shape_0_1_2_3_4_ = shape_[0] * shape_1_2_3_4_;
     size_ = shape_0_1_2_3_4_;
     
-    root_ = new VALUETYPE[size_];
+    root_ = new ALIGN VALUETYPE[size_];
 
     if (d1 >1)
         rank_ = 5;
@@ -795,6 +802,10 @@ Tensor Tensor::matMul(const Tensor& in_tensor)const
     Tensor result(shape_[0], shape_[1], shape_[2], shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
 
+    #if SIMDENABLE
+    Tensor in_T = in_tensor.transpose();
+    #endif
+
     if ( (shape_[0] == in_tensor.shape_[0]) 
             && (shape_[1] == in_tensor.shape_[1])
             && (shape_[2] == in_tensor.shape_[2])
@@ -808,10 +819,37 @@ Tensor Tensor::matMul(const Tensor& in_tensor)const
                         for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
                         {
                             sum =0 ;
+                            #if SIMDENABLE
+                            int j =0;
+                            for (int l =0 ; l < shape_[4] / 4 ; l++)
+                            {
+                                __m128 my_128;
+                                __m128 in_128;
+                                __m128 mulres; 
+                                __m128 res; 
+                                ALIGN float res_float[4] = {0};
+                                VALUETYPE local_sum =0;
+                                printf("shape_4 %d, j %d\n",shape_[4],j);
+                                my_128 = _mm_load_ps((root_ + (shape_4_ *i) + j));
+                                printf("in shape_4 %d, in j %d, in k %d\n",in_T.shape_[4], j, k);
+                                in_128 = _mm_load_ps((in_T.root_ + (in_T.shape_4_ *k) + j));
+                                _mm_dp_ps(my_128, in_128,local_sum); // substantial calculations.
+                                sum += local_sum;
+                                j +=4;
+                                printf("j+ %d, l %d\n",j,l);
+                                if( j >= shape_[4] )
+                                    break;
+                            }
+                            for ( int j = shape_[4] / 4 * 4 ; j < shape_[4] ; j ++)
+                            {
+                                sum += root(i,j) * in_T.root(k,j);
+                            }
+                            #else
                             for(int j = 0 ; j < shape_[4] ; j ++)
                             {
                                 sum += root(i,j) * in_tensor.root(j,k);
                             }
+                            #endif
                             result(d1_idx, d2_idx, d3_idx, i , k) = sum;
                         }
                     }
@@ -924,10 +962,34 @@ Tensor Tensor::dotMul(const Tensor& in) const
     {
         if ( shape_[COLIDX] == in.shape_[COLIDX] )
         {
+            #if SIMDENABLE
+            int i =0;
+            for (int l =0 ; l < shape_[COLIDX] / 4 ; l++)
+            {
+                __m128 my_128;
+                __m128 in_128;
+                __m128 mulres; 
+                __m128 res; 
+                ALIGN float res_float[4] = {0};
+                VALUETYPE local_sum =0;
+                my_128 = _mm_load_ps(root_ + i);
+                in_128 = _mm_load_ps(in.root_ + i);
+                _mm_dp_ps(my_128, in_128,local_sum); // substantial calculations.
+                sum += local_sum;
+                i +=4;
+                if( i >= shape_[COLIDX] )
+                    break;
+            }
+            for ( int i = shape_[COLIDX] / 4 * 4 ; i < shape_[COLIDX] ; i ++)
+            {
+                sum += root(i) * in.root(i);
+            }
+            #else
             for(int i =0 ; i< shape_[COLIDX]; i++)
             {
                 sum += root(i) * in.root(i);
             }
+            #endif
             status = true;
             result = sum;
         }
@@ -941,10 +1003,34 @@ Tensor Tensor::dotMul(const Tensor& in) const
     {
         if ( shape_[ROWIDX] == in.shape_[ROWIDX] )
         {
+            #if SIMDENABLE
+            int i =0;
+            for (int l =0 ; l < shape_[ROWIDX] / 4 ; l++)
+            {
+                __m128 my_128;
+                __m128 in_128;
+                __m128 mulres; 
+                __m128 res; 
+                ALIGN float res_float[4] = {0};
+                VALUETYPE local_sum =0;
+                my_128 = _mm_load_ps((root_ + (shape_4_ *i) + 1));
+                in_128 = _mm_load_ps((in.root_ + (in.shape_4_ *i) + 1));
+                _mm_dp_ps(my_128, in_128,local_sum); // substantial calculations.
+                sum += local_sum;
+                i +=4;
+                if( i >= shape_[ROWIDX] )
+                    break;
+            }
+            for ( int i = shape_[ROWIDX] / 4 * 4 ; i < shape_[ROWIDX] ; i ++)
+            {
+                sum += root(i,1) * in.root(i,1);
+            }
+            #else
             for(int i =0 ; i< shape_[ROWIDX]; i++)
             {
                 sum += root(i,1) * in.root(i,1);
             }
+            #endif
             status = true;
             result = sum;
         }
@@ -1566,7 +1652,7 @@ Tensor Tensor::min(int dim)const
     return result;
 }
 //template<typename T>
-Tensor Tensor::transpose()
+Tensor Tensor::transpose() const
 {
     Tensor result;
     if (rank_ == 0)
