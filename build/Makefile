@@ -123,32 +123,32 @@ handmade_learning/fast:
 	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/build
 .PHONY : handmade_learning/fast
 
-src/main.o: src/main.cu.o
+src/main.o: src/main.cpp.o
 
 .PHONY : src/main.o
 
 # target to build an object file
-src/main.cu.o:
-	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/main.cu.o
-.PHONY : src/main.cu.o
+src/main.cpp.o:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/main.cpp.o
+.PHONY : src/main.cpp.o
 
-src/main.i: src/main.cu.i
+src/main.i: src/main.cpp.i
 
 .PHONY : src/main.i
 
 # target to preprocess a source file
-src/main.cu.i:
-	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/main.cu.i
-.PHONY : src/main.cu.i
+src/main.cpp.i:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/main.cpp.i
+.PHONY : src/main.cpp.i
 
-src/main.s: src/main.cu.s
+src/main.s: src/main.cpp.s
 
 .PHONY : src/main.s
 
 # target to generate assembly for a file
-src/main.cu.s:
-	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/main.cu.s
-.PHONY : src/main.cu.s
+src/main.cpp.s:
+	$(MAKE) -f CMakeFiles/handmade_learning.dir/build.make CMakeFiles/handmade_learning.dir/src/main.cpp.s
+.PHONY : src/main.cpp.s
 
 # Help Target
 help:

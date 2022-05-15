@@ -5,7 +5,7 @@
 #include<math.h>
 #include<algorithm>
 #include<iostream>
-#include"cuda_utils.h"
+//#include"cuda_utils.h"
 
 #define TENSORDEBUG 0
 #define CUDAENABLE 0
