@@ -8,7 +8,7 @@
 #include"cuda_utils.h"
 
 #define TENSORDEBUG 0
-#define CUDAENABLE 0
+#define CUDAENABLE 1
 #define DEFAULTMAXDIM 5
 #define ROWIDX 3
 #define COLIDX 4
@@ -64,9 +64,9 @@ private:
     VALUETYPE& root(int i, int j, int k)const{ return *(root_ + (shape_3_4_ * i) + (shape_4_ *j) + k); }
     VALUETYPE& root(int i, int j, int k, int l)const{ return *(root_ + (shape_2_3_4_ * i) + (shape_3_4_ * j) + (shape_4_ *k) + l);}
     VALUETYPE& root(int i, int j, int k, int l, int m)const{ return *(root_ + (shape_1_2_3_4_*i) +  (shape_2_3_4_ * j) + (shape_3_4_ * k) + (shape_4_ *l) + m); }
-
-    VALUETYPE* rootAddress()const{ return root_; }
     VALUETYPE* rootAddress(int i, int j, int k, int l, int m)const{ return (root_ + (shape_1_2_3_4_*i) +  (shape_2_3_4_ * j) + (shape_3_4_ * k) + (shape_4_ *l) + m); }
+
+
 
 
     void breakTensorInGpu();
@@ -88,6 +88,8 @@ public:
     Tensor(int *shape){ makeTensor(shape[0],shape[1],shape[2],shape[3],shape[4]); }
     Tensor(const Tensor& cp);
     ~Tensor() { if (valid_) breakTensor(); }
+
+    VALUETYPE* rootAddress()const{ return root_; }
 
     void makeTensor(int d1, int d2, int d3, int d4, int d5);
 
@@ -131,8 +133,6 @@ public:
     Tensor extract(int i, int j, int k, int l);
     Tensor extract(int i, int j, int k, int l, int m);
 
-    void copyHostToGpu();
-    void copyGpuToHost();
 
     VALUETYPE toScalar()
     {

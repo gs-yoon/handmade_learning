@@ -1,7 +1,8 @@
 #ifndef __TENSOR_H__
 #define __TENSOR_H__
 
-#include "tensor_core.h"
+//#include "tensor_core.h"
+#include "tensor_cuda.h"
 
 Tensor log(const Tensor& x)
 {
@@ -95,139 +96,6 @@ Tensor padding(Tensor& x, int pad_size )
                         result(d1_idx,d2_idx,d3_idx,d4_idx+pad_size,d5_idx+pad_size) = x(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx);
     return result;
 }
-
-/*
-void allocInGpu()
-{
-    //if (gpu_valid_ == 1)
-    //    breakTensorInGpu();
-
-    gpu_valid_ = 1;
-    cudaMalloc(&shape_gpu_, DEFAULTMAXDIM*sizeof(int));
-
-    int d1 = shape_[0];
-    int d2 = shape_[1];
-    int d3 = shape_[2];
-    int d4 = shape_[3];
-    int d5 = shape_[4];
-
-    cudaMalloc(&root_gpu_, d1*sizeof(VALUETYPE));
-
-    for(int idx = 0 ; idx < d1 ; idx ++)
-    {
-        cudaMalloc(&root_gpu_[idx], d2*sizeof(VALUETYPE));
-    }
-    
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            cudaMalloc(&root_gpu_[ri][ci], d3*sizeof(VALUETYPE));
-        }
-    }
-
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            for( int di = 0; di < d3 ; di++)
-            {
-                cudaMalloc(&root_gpu_[ri][ci][di], d4*sizeof(VALUETYPE));
-            }
-        }
-    }
-
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            for( int di = 0; di < d3 ; di++)
-            {
-                for(int d4i =0 ;d4i < d4 ; d4i++)
-                    cudaMalloc(&root_gpu_[ri][ci][di][d4i], d5*sizeof(VALUETYPE));
-            }
-        }
-    }
-}
-
-
-//template<typename T>
-void breakTensorInGpu()
-{
-    gpu_valid_ = 0;
-
-    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
-    {
-        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
-        {
-            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
-            {
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                {
-                    if (root_gpu_[d1_idx][d2_idx][d3_idx][d4_idx] != nullptr)
-                    {
-                        cudaFree(root_gpu_[d1_idx][d2_idx][d3_idx][d4_idx]);
-                        root_gpu_[d1_idx][d2_idx][d3_idx][d4_idx] = nullptr;
-                    }
-
-                }
-                if (root_gpu_[d1_idx][d2_idx][d3_idx] != nullptr)
-                {
-                    cudaFree(root_gpu_[d1_idx][d2_idx][d3_idx]);
-                    root_gpu_[d1_idx][d2_idx][d3_idx] = nullptr;
-                }
-            }
-            if (root_gpu_[d1_idx][d2_idx] != nullptr)
-            {
-                cudaFree(root_gpu_[d1_idx][d2_idx]);
-                root_gpu_[d1_idx][d2_idx] = nullptr;
-            }
-        }
-        if (root_gpu_[d1_idx] != nullptr)
-        {
-            cudaFree(root_gpu_[d1_idx]);
-            root_gpu_[d1_idx] = nullptr;
-        }
-    }
-    if (root_gpu_ != nullptr)
-        {
-            cudaFree(root_gpu_);
-            root_gpu_ = nullptr;
-        }
-
-    if (shape_ != nullptr)
-    
-    {
-        delete[] shape_gpu_;
-        shape_gpu_ = nullptr;
-    }
-}
-
-void copyHostToGpu()
-{
-    allocInGpu();
-    cudaMalloc3D()
-    cudaMemcpy(shape_gpu_, root_, DEFAULTMAXDIM*sizeof(int), cudaMemcpyHostToDevice);
-    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
-        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
-            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    checkCuda(cudaMemcpy(root_gpu_[d1_idx][d2_idx][d3_idx][d4_idx], root_[d1_idx][d2_idx][d3_idx][d4_idx], shape_[4]*sizeof(VALUETYPE),cudaMemcpyHostToDevice));
-
-}
-void copyGpuToHost()
-{
-    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
-        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
-            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    checkCuda(cudaMemcpy(root_[d1_idx][d2_idx][d3_idx][d4_idx], root_gpu_[d1_idx][d2_idx][d3_idx][d4_idx], shape_[4]*sizeof(VALUETYPE),cudaMemcpyDeviceToHost));
-
-    breakTensorInGpu();
-}
-
-*/
-
 
 /*************
 /* operator */

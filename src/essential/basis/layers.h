@@ -146,21 +146,14 @@ public:
         //    x_ = x.flatten();//  flatten 아닐걸?
 
         Tensor out;
-        out = x_.dotMul(W_) + b_;
+        //out = x_.dotMul(W_) + b_;
+        out = dot(x_,W_) + b_;
         return out;
     }
     Tensor backward(Tensor& dout)
     {
         Tensor dx;
         Tensor result;
-
-        //std::cout << "affine "<< std::endl;
-        //std::cout << "dout shape =  ";
-        //dout.printShape();
-        //std::cout << "x_T shape =  ";
-        //x_.transpose().printShape();
-        //std::cout << "W_T shape =  ";
-        //W_.transpose().printShape();
 
         dx = dout.dotMul(W_.transpose());
         dW_ = x_.transpose().dotMul(dout);
