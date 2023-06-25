@@ -26,8 +26,8 @@ public:
     TwoLayerNetCopy()
     {
         t_.createTensor(10);
-        affine_1.init(784, 50);
-        affine_2.init(50, 100);
+        affine_1.init(784, 52);
+        affine_2.init(52, 100);
         affine_3.init(100, 10);
     }
 

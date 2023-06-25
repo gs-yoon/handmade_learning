@@ -8,6 +8,7 @@
 #include <unistd.h> // unix defined library.
 #include <immintrin.h> // Intel core SIMD intrinsic instructions. 
 #include <pmmintrin.h> // SSE3
+#include <malloc.h>
 //#include"cuda_utils.h"
 
 #define TENSORDEBUG 0
@@ -580,7 +581,8 @@ inline void Tensor::makeTensor(int d1, int d2, int d3, int d4, int d5)
     shape_0_1_2_3_4_ = shape_[0] * shape_1_2_3_4_;
     size_ = shape_0_1_2_3_4_;
     
-    root_ = new ALIGN VALUETYPE[size_];
+    //root_ = new ALIGN VALUETYPE[size_];
+    root_ = (VALUETYPE*)aligned_alloc((size_t)16*sizeof(char), (size_t)size_*sizeof(VALUETYPE));
 
     if (d1 >1)
         rank_ = 5;
@@ -649,7 +651,7 @@ void Tensor::breakTensor()
 
     if (root_ != nullptr)
         {
-            delete[] root_;
+            free(root_);
             root_ = nullptr;
         }
 
@@ -816,31 +818,34 @@ Tensor Tensor::matMul(const Tensor& in_tensor)const
                 for(int d3_idx =0; d3_idx < shape_[2]; d3_idx++)
                     for(int i = 0 ; i < shape_[ROWIDX] ; i ++ )
                     {
+                        int residual = 0;
                         for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
                         {
                             sum =0 ;
                             #if SIMDENABLE
                             int j =0;
-                            for (int l =0 ; l < shape_[4] / 4 ; l++)
+                            if ( shape_[4] / 4 == 0)
                             {
-                                __m128 my_128;
-                                __m128 in_128;
-                                __m128 mulres; 
-                                __m128 res; 
-                                ALIGN float res_float[4] = {0};
-                                VALUETYPE local_sum =0;
-                                printf("shape_4 %d, j %d\n",shape_[4],j);
-                                my_128 = _mm_load_ps((root_ + (shape_4_ *i) + j));
-                                printf("in shape_4 %d, in j %d, in k %d\n",in_T.shape_[4], j, k);
-                                in_128 = _mm_load_ps((in_T.root_ + (in_T.shape_4_ *k) + j));
-                                _mm_dp_ps(my_128, in_128,local_sum); // substantial calculations.
-                                sum += local_sum;
-                                j +=4;
-                                printf("j+ %d, l %d\n",j,l);
-                                if( j >= shape_[4] )
-                                    break;
+                                for (int l =0 ; l < shape_[4] / 4 ; l++)
+                                {
+                                    __m128 my_128;
+                                    __m128 in_128;
+                                    __m128 mulres; 
+                                    __m128 res; 
+                                    ALIGN float res_float[4] = {0};
+                                    VALUETYPE local_sum =0;
+                                    printShape();
+                                    my_128 = _mm_load_ps((root_ + (shape_4_ *i) + j));
+                                    in_T.printShape();
+                                    in_128 = _mm_load_ps((in_T.root_ + (in_T.shape_4_ *k) + j));
+                                    _mm_dp_ps(my_128, in_128,local_sum);
+                                    sum += local_sum;
+                                    j +=4;
+                                    if( j >= shape_[4] )
+                                        break;
+                                }
                             }
-                            for ( int j = shape_[4] / 4 * 4 ; j < shape_[4] ; j ++)
+                            for ( j ; j < shape_[4] ; j ++)
                             {
                                 sum += root(i,j) * in_T.root(k,j);
                             }
