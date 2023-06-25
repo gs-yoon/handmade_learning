@@ -5,14 +5,24 @@
 #include<math.h>
 #include<algorithm>
 #include<iostream>
+#include <unistd.h> // unix defined library.
+#include <immintrin.h> // Intel core SIMD intrinsic instructions. 
+#include <pmmintrin.h> // SSE3
+#include <malloc.h>
+//#include"cuda_utils.h"
 
 #define TENSORDEBUG 0
+#define CUDAENABLE 0
+#define SIMDENABLE 1
 #define DEFAULTMAXDIM 5
 #define ROWIDX 3
 #define COLIDX 4
 
+#define ALIGN alignas(16) // macro for aligned memory
+
+
 typedef float SCALARTYPE;
-typedef double VALUETYPE;
+typedef float VALUETYPE;
 
 enum OPERATIONS{
     SUM=0,
@@ -41,21 +51,34 @@ long long g_make_cnt =0;
 class Tensor
 {
 private:
-    VALUETYPE***** root_ = nullptr;
+    VALUETYPE* root_ = nullptr;
 
     int* shape_ = nullptr;
     int row_ =0;
     int col_ =0;
     int rank_ = 0;
     int valid_ = 0;
+    int shape_0_1_2_3_4_ = 0; //total size
+    int shape_1_2_3_4_ = 0; 
+    int shape_2_3_4_ = 0; 
+    int shape_3_4_ = 0; 
+    int shape_4_ = 0; 
+    int size_ = 0;
 
 private:
-    VALUETYPE& root()const{ return root_[0][0][0][0][0]; }
-    VALUETYPE& root(int i)const{ return root_[0][0][0][0][i]; }
-    VALUETYPE& root(int i, int j)const{ return root_[0][0][0][i][j]; }
-    VALUETYPE& root(int i, int j, int k)const{ return root_[0][0][i][j][k]; }
-    VALUETYPE& root(int i, int j, int k, int l)const{ return root_[0][i][j][k][l]; }
-    VALUETYPE& root(int i, int j, int k, int l, int m)const{ return root_[i][j][k][l][m]; }
+    VALUETYPE& root()const{ return *root_; }
+    VALUETYPE& root(int i)const{ return *(root_ + i); }
+    VALUETYPE& root(int i, int j)const{ return *(root_ + (shape_4_ *i) + j); }
+    VALUETYPE& root(int i, int j, int k)const{ return *(root_ + (shape_3_4_ * i) + (shape_4_ *j) + k); }
+    VALUETYPE& root(int i, int j, int k, int l)const{ return *(root_ + (shape_2_3_4_ * i) + (shape_3_4_ * j) + (shape_4_ *k) + l);}
+    VALUETYPE& root(int i, int j, int k, int l, int m)const{ return *(root_ + (shape_1_2_3_4_*i) +  (shape_2_3_4_ * j) + (shape_3_4_ * k) + (shape_4_ *l) + m); }
+
+    VALUETYPE* rootAddress()const{ return root_; }
+    VALUETYPE* rootAddress(int i, int j, int k, int l, int m)const{ return (root_ + (shape_1_2_3_4_*i) +  (shape_2_3_4_ * j) + (shape_3_4_ * k) + (shape_4_ *l) + m); }
+
+
+    void breakTensorInGpu();
+    void allocInGpu();
 
     Tensor matMul1D(const Tensor& )const;
     Tensor matMul2D(const Tensor& )const;
@@ -95,11 +118,11 @@ public:
     int* getRawShape()const;
     int getShape(int idm)const;
     int setVal();
-    int setConstant(VALUETYPE);
+    void setConstant(VALUETYPE);
     int setRandom();
     int getSize()const;
     int rank()const;
-    VALUETYPE***** getData()const;
+    VALUETYPE* getData()const;
     Tensor matMul(const Tensor& )const;
     Tensor dotMul(const Tensor& )const;
     Tensor reshape(int);//const?
@@ -108,7 +131,7 @@ public:
     Tensor reshape(int, int, int, int);//const?
     Tensor reshape(int, int, int, int, int);//const?
     Tensor reshape(int*);//const?
-    Tensor transpose();//const?
+    Tensor transpose() const;
     Tensor flatten();//const?
 
     Tensor extract(int i, int j);
@@ -116,12 +139,16 @@ public:
     Tensor extract(int i, int j, int k, int l);
     Tensor extract(int i, int j, int k, int l, int m);
 
+    void copyHostToGpu();
+    void copyGpuToHost();
+
     VALUETYPE toScalar()
     {
         if( rank_ ==0 )
             return root(0);
         else
             printf("Invalid Converting. No Scalar\n");
+            return -1;
     }
     //Tensor partialCopy(int i, int j, int k, int l, Tesnor& x);
 
@@ -365,14 +392,14 @@ public:
     bool operator<(const Tensor t)
     {
         if (rank_ == 0)
-            return root(0) < t.root_[0][0][0][0][0]; 
+            return root(0) < t.root(0,0,0,0,0); 
         else
             return false;
     }
     bool operator>(const Tensor t)
     {
         if (rank_ == 0)
-            return root(0) > t.root_[0][0][0][0][0]; 
+            return root(0) > t.root(0,0,0,0,0); 
         else
             return false;
     }
@@ -414,13 +441,8 @@ Tensor::Tensor(const Tensor& cp)
         shape_[i] = cp.shape_[i];
     }
 
-    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
-        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
-            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    std::copy(cp.root_[d1_idx][d2_idx][d3_idx][d4_idx], cp.root_[d1_idx][d2_idx][d3_idx][d4_idx] + shape_[4], root_[d1_idx][d2_idx][d3_idx][d4_idx]) ;
-                    //for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
-                    //    root(d1_idx,d2_idx,d3_idx,d4_idx,d5_idx) = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;//copyc
+    std::copy(cp.root_, cp.root_ + size_, root_) ;
+
 }
 
 //assign constructor
@@ -442,6 +464,7 @@ Tensor& Tensor::operator=(const VALUETYPE scalar)
     }
 
     root(0) = scalar;
+    return *this;
 }
 
 //template<typename T>
@@ -462,6 +485,7 @@ Tensor& Tensor::operator=(const int scalar)
     }
 
     root(0) = scalar;
+    return *this;
 }
 //template<typename T>
 Tensor& Tensor::operator=(const bool scalar)
@@ -481,6 +505,7 @@ Tensor& Tensor::operator=(const bool scalar)
     }
 
     root(0) = scalar;
+    return *this;
 }
 //template<typename T>
 Tensor& Tensor::operator=(const Tensor& cp)
@@ -525,16 +550,7 @@ Tensor& Tensor::operator=(const Tensor& cp)
             shape_[i] = cp.shape_[i];
         }
     }
-    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
-        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
-            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    std::copy(cp.root_[d1_idx][d2_idx][d3_idx][d4_idx], cp.root_[d1_idx][d2_idx][d3_idx][d4_idx] + shape_[4], root_[d1_idx][d2_idx][d3_idx][d4_idx]) ;
-                    //for( int d5_idx = 0; d5_idx < shape_[4] ; d5_idx++)
-                    //    root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] = cp.root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] ;
-    
-    //int tensor_size = shape_[0] *shape_[1] *shape_[2] *shape_[3] *shape_[4];
-    //std::copy(cp.root_, cp.root_ + tensor_size, root_);
+    std::copy(cp.root_, cp.root_ + size_, root_) ;
 
     return *this;
 }
@@ -547,51 +563,26 @@ inline void Tensor::makeTensor(int d1, int d2, int d3, int d4, int d5)
 
     valid_ = 1;
     g_make_cnt ++;
-    root_ = new VALUETYPE****[d1];
+
+    row_ = d4;
+    col_ = d5;
+
     shape_ = new int[DEFAULTMAXDIM];
-
-    for(int idx = 0 ; idx < d1 ; idx ++)
-    {
-        root_[idx] = new VALUETYPE***[d2];
-    }
-    
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            root_[ri][ci] = new VALUETYPE**[d3];
-        }
-    }
-
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            for( int di = 0; di < d3 ; di++)
-            {
-                root_[ri][ci][di] = new VALUETYPE*[d4];
-            }
-        }
-    }
-
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            for( int di = 0; di < d3 ; di++)
-            {
-                for(int d4i =0 ;d4i < d4 ; d4i++)
-                    root_[ri][ci][di][d4i] = new VALUETYPE[d5];
-            }
-        }
-    }
     shape_[0] = d1;
     shape_[1] = d2;
     shape_[2] = d3;
     shape_[3] = d4;
     shape_[4] = d5;
-    row_ = d4;
-    col_ = d5;
+
+    shape_4_ = shape_[4];
+    shape_3_4_= shape_[3] * shape_4_;
+    shape_2_3_4_ = shape_[2] * shape_3_4_;
+    shape_1_2_3_4_ = shape_[1] * shape_2_3_4_;
+    shape_0_1_2_3_4_ = shape_[0] * shape_1_2_3_4_;
+    size_ = shape_0_1_2_3_4_;
+    
+    //root_ = new ALIGN VALUETYPE[size_];
+    root_ = (VALUETYPE*)aligned_alloc((size_t)16*sizeof(char), (size_t)size_*sizeof(VALUETYPE));
 
     if (d1 >1)
         rank_ = 5;
@@ -605,6 +596,7 @@ inline void Tensor::makeTensor(int d1, int d2, int d3, int d4, int d5)
         rank_ = 1;
     else
         rank_ = 0;
+
 }
 
 //template<typename T>
@@ -615,57 +607,26 @@ inline void Tensor::makeZeros(int d1, int d2, int d3, int d4, int d5)
 
     valid_ = 1;
     g_make_cnt ++;
-    root_ = new VALUETYPE****[d1];
+
+    row_ = d4;
+    col_ = d5;
+
     shape_ = new int[DEFAULTMAXDIM];
-
-    for(int idx = 0 ; idx < d1 ; idx ++)
-    {
-        root_[idx] = new VALUETYPE***[d2];
-    }
-    
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            root_[ri][ci] = new VALUETYPE**[d3];
-        }
-    }
-
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            for( int di = 0; di < d3 ; di++)
-            {
-                root_[ri][ci][di] = new VALUETYPE*[d4];
-            }
-        }
-    }
-
-    for(int ri = 0 ; ri < d1 ; ri++)
-    {
-        for( int ci = 0; ci < d2 ; ci++)
-        {
-            for( int di = 0; di < d3 ; di++)
-            {
-                for(int d4i =0 ;d4i < d4 ; d4i++)
-                {
-                    root_[ri][ci][di][d4i] = new VALUETYPE[d5];
-                    std::fill(root_[ri][ci][di][d4i], root_[ri][ci][di][d4i]+ d5, 0x00);
-                    //for(int d5_idx = 0 ; d5_idx < d5 ; d5_idx++)
-                     //   root_[ri][ci][di][d4i][d5_idx] = 0;
-                    //memset(root_[ri][ci][di][d4i], 0x00, sizeof(root_[ri][ci][di][d4i]));
-                }
-            }
-        }
-    }
     shape_[0] = d1;
     shape_[1] = d2;
     shape_[2] = d3;
     shape_[3] = d4;
     shape_[4] = d5;
-    row_ = d4;
-    col_ = d5;
+
+    shape_4_ = shape_[4];
+    shape_3_4_= shape_[3] * shape_4_;
+    shape_2_3_4_ = shape_[2] * shape_3_4_;
+    shape_1_2_3_4_ = shape_[1] * shape_2_3_4_;
+    shape_0_1_2_3_4_ = shape_[0] * shape_1_2_3_4_;
+    size_ = shape_0_1_2_3_4_;
+    
+    root_ = new VALUETYPE[size_];
+    std::fill(root_, root_ + size_, 0x00);
 
     if (d1 >1)
         rank_ = 5;
@@ -679,6 +640,7 @@ inline void Tensor::makeZeros(int d1, int d2, int d3, int d4, int d5)
         rank_ = 1;
     else
         rank_ = 0;
+
 }
 
 //template<typename T>
@@ -687,42 +649,9 @@ void Tensor::breakTensor()
     g_delete_cnt ++;
     valid_ = 0;
 
-    for(int d1_idx = 0 ; d1_idx < shape_[0] ; d1_idx++)
-    {
-        for( int d2_idx = 0; d2_idx < shape_[1] ; d2_idx++)
-        {
-            for( int d3_idx = 0; d3_idx < shape_[2] ; d3_idx++)
-            {
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                {
-                    if (root_[d1_idx][d2_idx][d3_idx][d4_idx] != nullptr)
-                    {
-                        delete[] root_[d1_idx][d2_idx][d3_idx][d4_idx];
-                        root_[d1_idx][d2_idx][d3_idx][d4_idx] = nullptr;
-                    }
-
-                }
-                if (root_[d1_idx][d2_idx][d3_idx] != nullptr)
-                {
-                    delete[] root_[d1_idx][d2_idx][d3_idx];
-                    root_[d1_idx][d2_idx][d3_idx] = nullptr;
-                }
-            }
-            if (root_[d1_idx][d2_idx] != nullptr)
-            {
-                delete[] root_[d1_idx][d2_idx];
-                root_[d1_idx][d2_idx] = nullptr;
-            }
-        }
-        if (root_[d1_idx] != nullptr)
-        {
-            delete[] root_[d1_idx];
-            root_[d1_idx] = nullptr;
-        }
-    }
     if (root_ != nullptr)
         {
-            delete[] root_;
+            free(root_);
             root_ = nullptr;
         }
 
@@ -732,6 +661,7 @@ void Tensor::breakTensor()
         shape_ = nullptr;
     }
 }
+
 //template<typename T>
 int* Tensor::getRawShape() const
 {
@@ -767,21 +697,15 @@ int Tensor::getShape(int dim) const
 
 int Tensor::setVal()
 {
-
+    return 0;
 }
-int Tensor::setConstant(VALUETYPE scalar)
-{
-    
-    for(int d1_idx = 0 ; d1_idx < shape_[0]; d1_idx++)
-        for( int d2_idx = 0; d2_idx < shape_[1] ;d2_idx++)
-            for( int d3_idx = 0; d3_idx < shape_[2] ;d3_idx++)
-                for( int d4_idx = 0; d4_idx < shape_[3] ; d4_idx++)
-                    for( int d5_idx = 0; d5_idx < shape_[4] ;d5_idx++)
-                        root_[d1_idx][d2_idx][d3_idx][d4_idx][d5_idx] = scalar;
+void Tensor::setConstant(VALUETYPE scalar)
+{  
+    std::fill(root_, root_ + size_, scalar);
 }
 int Tensor::setRandom()
 {
-
+    return 0;
 }
 int Tensor::getSize()const
 {
@@ -796,7 +720,7 @@ int Tensor::rank() const
     return rank_;
 }
 //template<typename T>
-VALUETYPE***** Tensor::getData() const
+VALUETYPE* Tensor::getData() const
 {
 
     return root_;
@@ -808,7 +732,7 @@ Tensor Tensor::matMul1D(const Tensor& in_tensor) const
     Tensor result;
     if ( (rank_ == 0 ) && (in_tensor.rank_ > 0) )
     {
-        VALUETYPE* ptr = in_tensor.root_[0][0][0][0];
+        VALUETYPE* ptr = in_tensor.rootAddress(0,0,0,0,0);
         int numOfElements = 1;
         for(int i =0 ; i< in_tensor.rank_ ; i++)
         {
@@ -822,7 +746,7 @@ Tensor Tensor::matMul1D(const Tensor& in_tensor) const
     }
     else if ( (in_tensor.rank_ == 0 ) && (rank_ > 0 )  )
     {
-        VALUETYPE* ptr = root_[0][0][0][0];
+        VALUETYPE* ptr = rootAddress(0,0,0,0,0);
         int numOfElements = 1;
         for(int i =0 ; i< rank_ ; i++)
         {
@@ -838,6 +762,7 @@ Tensor Tensor::matMul1D(const Tensor& in_tensor) const
     {
         printf("Dimension erorr. Use matMul2D or matMul3D \n") ;
     }
+    return result;
 }
 
 //template<typename T>
@@ -879,6 +804,10 @@ Tensor Tensor::matMul(const Tensor& in_tensor)const
     Tensor result(shape_[0], shape_[1], shape_[2], shape_[ROWIDX], in_tensor.shape_[COLIDX]);
     double sum = 0;
 
+    #if SIMDENABLE
+    Tensor in_T = in_tensor.transpose();
+    #endif
+
     if ( (shape_[0] == in_tensor.shape_[0]) 
             && (shape_[1] == in_tensor.shape_[1])
             && (shape_[2] == in_tensor.shape_[2])
@@ -889,13 +818,43 @@ Tensor Tensor::matMul(const Tensor& in_tensor)const
                 for(int d3_idx =0; d3_idx < shape_[2]; d3_idx++)
                     for(int i = 0 ; i < shape_[ROWIDX] ; i ++ )
                     {
+                        int residual = 0;
                         for(int k =0 ; k < in_tensor.shape_[COLIDX]; k++)
                         {
                             sum =0 ;
+                            #if SIMDENABLE
+                            int j =0;
+                            if ( shape_[4] / 4 == 0)
+                            {
+                                for (int l =0 ; l < shape_[4] / 4 ; l++)
+                                {
+                                    __m128 my_128;
+                                    __m128 in_128;
+                                    __m128 mulres; 
+                                    __m128 res; 
+                                    ALIGN float res_float[4] = {0};
+                                    VALUETYPE local_sum =0;
+                                    printShape();
+                                    my_128 = _mm_load_ps((root_ + (shape_4_ *i) + j));
+                                    in_T.printShape();
+                                    in_128 = _mm_load_ps((in_T.root_ + (in_T.shape_4_ *k) + j));
+                                    _mm_dp_ps(my_128, in_128,local_sum);
+                                    sum += local_sum;
+                                    j +=4;
+                                    if( j >= shape_[4] )
+                                        break;
+                                }
+                            }
+                            for ( j ; j < shape_[4] ; j ++)
+                            {
+                                sum += root(i,j) * in_T.root(k,j);
+                            }
+                            #else
                             for(int j = 0 ; j < shape_[4] ; j ++)
                             {
                                 sum += root(i,j) * in_tensor.root(j,k);
                             }
+                            #endif
                             result(d1_idx, d2_idx, d3_idx, i , k) = sum;
                         }
                     }
@@ -1008,10 +967,34 @@ Tensor Tensor::dotMul(const Tensor& in) const
     {
         if ( shape_[COLIDX] == in.shape_[COLIDX] )
         {
+            #if SIMDENABLE
+            int i =0;
+            for (int l =0 ; l < shape_[COLIDX] / 4 ; l++)
+            {
+                __m128 my_128;
+                __m128 in_128;
+                __m128 mulres; 
+                __m128 res; 
+                ALIGN float res_float[4] = {0};
+                VALUETYPE local_sum =0;
+                my_128 = _mm_load_ps(root_ + i);
+                in_128 = _mm_load_ps(in.root_ + i);
+                _mm_dp_ps(my_128, in_128,local_sum); // substantial calculations.
+                sum += local_sum;
+                i +=4;
+                if( i >= shape_[COLIDX] )
+                    break;
+            }
+            for ( int i = shape_[COLIDX] / 4 * 4 ; i < shape_[COLIDX] ; i ++)
+            {
+                sum += root(i) * in.root(i);
+            }
+            #else
             for(int i =0 ; i< shape_[COLIDX]; i++)
             {
                 sum += root(i) * in.root(i);
             }
+            #endif
             status = true;
             result = sum;
         }
@@ -1025,10 +1008,34 @@ Tensor Tensor::dotMul(const Tensor& in) const
     {
         if ( shape_[ROWIDX] == in.shape_[ROWIDX] )
         {
+            #if SIMDENABLE
+            int i =0;
+            for (int l =0 ; l < shape_[ROWIDX] / 4 ; l++)
+            {
+                __m128 my_128;
+                __m128 in_128;
+                __m128 mulres; 
+                __m128 res; 
+                ALIGN float res_float[4] = {0};
+                VALUETYPE local_sum =0;
+                my_128 = _mm_load_ps((root_ + (shape_4_ *i) + 1));
+                in_128 = _mm_load_ps((in.root_ + (in.shape_4_ *i) + 1));
+                _mm_dp_ps(my_128, in_128,local_sum); // substantial calculations.
+                sum += local_sum;
+                i +=4;
+                if( i >= shape_[ROWIDX] )
+                    break;
+            }
+            for ( int i = shape_[ROWIDX] / 4 * 4 ; i < shape_[ROWIDX] ; i ++)
+            {
+                sum += root(i,1) * in.root(i,1);
+            }
+            #else
             for(int i =0 ; i< shape_[ROWIDX]; i++)
             {
                 sum += root(i,1) * in.root(i,1);
             }
+            #endif
             status = true;
             result = sum;
         }
@@ -1650,7 +1657,7 @@ Tensor Tensor::min(int dim)const
     return result;
 }
 //template<typename T>
-Tensor Tensor::transpose()
+Tensor Tensor::transpose() const
 {
     Tensor result;
     if (rank_ == 0)
@@ -1712,8 +1719,7 @@ Tensor Tensor::extract(int i, int j)
     if (j == -1)
     {
         result.makeTensor(1,1,1,1,shape_[4]);
-        for(int d4 =0; d4 < shape_[4]; d4++)
-            result.root_[0][0][0][0][d4] = root_[0][0][0][i][d4]; 
+        std::copy(rootAddress(0,0,0,i,0),rootAddress(0,0,0,i,0) + shape_[4], result.rootAddress(0,0,0,0,0) );
     }
     return result;
 }
@@ -1726,16 +1732,13 @@ Tensor Tensor::extract(int i, int j, int k)
         if (j == -1)
         {
             result.makeTensor(1,1,1,shape_[3],shape_[4]);
-            for(int d3 =0; d3 < shape_[3]; d3++)
-                for(int d4 =0; d4 < shape_[4]; d4++)
-                    result.root_[0][0][0][d3][d4] = root_[0][0][i][d3][d4]; 
+            std::copy(rootAddress(0,0,i,0,0),rootAddress(0,0,i,0,0) + shape_3_4_, result.rootAddress(0,0,0,0,0) );
 
         }
         else
         {
             result.makeTensor(1,1,1,1,shape_[4]);
-            for(int d4 =0; d4 < shape_[4]; d4++)
-                result.root_[0][0][0][0][d4] = root_[0][0][i][j][d4];   
+            std::copy(rootAddress(0,0,i,j,0),rootAddress(0,0,i,j,0) + shape_4_, result.rootAddress(0,0,0,0,0) );
         }
     }
     else
@@ -1754,24 +1757,18 @@ Tensor Tensor::extract(int i, int j, int k, int l)
             if (j == -1)
             {
                 result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-                for(int d2 =0; d2 < shape_[2]; d2++)
-                    for(int d3 =0; d3 < shape_[3]; d3++)
-                        for(int d4 =0; d4 < shape_[4]; d4++)
-                            result.root_[0][0][d2][d3][d4] = root_[0][i][d2][d3][d4]; 
+                std::copy(rootAddress(0,i,0,0,0),rootAddress(0,i,0,0,0) + shape_2_3_4_, result.rootAddress(0,0,0,0,0) );
             }
             else
             {
                 result.makeTensor(1,1,1,shape_[3],shape_[4]);
-                for(int d3 =0; d3 < shape_[3]; d3++)
-                    for(int d4 =0; d4 < shape_[4]; d4++)
-                        result.root_[0][0][0][d3][d4] = root_[0][i][j][d3][d4]; 
+                std::copy(rootAddress(0,i,j,0,0),rootAddress(0,i,j,0,0) + shape_3_4_, result.rootAddress(0,0,0,0,0) );
             }
         }
         else
         {
             result.makeTensor(1,1,1,shape_[3],shape_[4]);
-            for(int d4 =0; d4 < shape_[4]; d4++)
-                result.root_[0][0][0][0][d4] = root_[0][i][j][k][d4]; 
+            std::copy(rootAddress(0,i,j,k,0),rootAddress(0,i,j,k,0) + shape_4_, result.rootAddress(0,0,0,0,0) );
         }
         
     }
@@ -1789,34 +1786,24 @@ Tensor Tensor::extract(int i, int j, int k, int l, int m)
                 if (j == -1)
                 {
                     result.makeTensor(1,shape_[1],shape_[2],shape_[3],shape_[4]);
-                    for(int d1 =0; d1 < shape_[1]; d1++)
-                        for(int d2 =0; d2 < shape_[2]; d2++)
-                            for(int d3 =0; d3 < shape_[3]; d3++)
-                                for(int d4 =0; d4 < shape_[4]; d4++)
-                                    result.root_[0][d1][d2][d3][d4] = root_[i][d1][d2][d3][d4];
+                    std::copy(rootAddress(i,0,0,0,0),rootAddress(i,0,0,0,0) + shape_1_2_3_4_, result.rootAddress(0,0,0,0,0) );
                 }
                 else
                 {
                     result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-                    for(int d2 =0; d2 < shape_[2]; d2++)
-                        for(int d3 =0; d3 < shape_[3]; d3++)
-                            for(int d4 =0; d4 < shape_[4]; d4++)
-                                result.root_[0][0][d2][d3][d4] = root_[i][j][d2][d3][d4];
+                    std::copy(rootAddress(i,j,0,0,0),rootAddress(i,j,0,0,0) + shape_2_3_4_, result.rootAddress(0,0,0,0,0) );
                 }
             }
             else
             {
                 result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-                for(int d3 =0; d3 < shape_[3]; d3++)
-                    for(int d4 =0; d4 < shape_[4]; d4++)
-                        result.root_[0][0][0][d3][d4] = root_[i][j][k][d3][d4];
+                std::copy(rootAddress(i,j,k,0,0),rootAddress(i,j,k,0,0) + shape_3_4_, result.rootAddress(0,0,0,0,0) );
             }
         }
         else
         {
             result.makeTensor(1,1,shape_[2],shape_[3],shape_[4]);
-            for(int d4 =0; d4 < shape_[4]; d4++)
-                result.root_[0][0][0][0][d4] = root_[i][j][k][l][d4];
+            std::copy(rootAddress(i,j,k,l,0),rootAddress(i,j,k,l,0) + shape_4_, result.rootAddress(0,0,0,0,0) );
         }
     }
     else{

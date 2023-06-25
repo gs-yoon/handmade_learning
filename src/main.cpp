@@ -28,7 +28,6 @@ int main()
   
   int epochs =0;
   float loss_val=0;
-  int acc_cnt =0;
   for (int epoch = 0; epoch < epochs ; epoch++)
   {
     for (int i =0; i< iters_num ; i++)

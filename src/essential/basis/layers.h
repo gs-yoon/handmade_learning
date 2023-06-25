@@ -178,9 +178,9 @@ public:
 class SoftmaxWithLoss: public Layer
 {
 private:
-        Tensor loss_;
-        Tensor y_;
-        Tensor t_;
+    Tensor loss_;
+    Tensor y_;
+    Tensor t_;
 
 public:
     SoftmaxWithLoss(){}
@@ -270,6 +270,7 @@ public:
         {
             return x * (1.0 - ((float)dropout_ratio_)/100);
         }
+
     }
 
     Tensor backward(Tensor& dout)
@@ -363,7 +364,7 @@ class BatchNormalization:
         
         return dx
 */
-
+/*
 class Conv: public Layer
 {
     //def __init__(self, W, b, stride=1, pad=0):
@@ -473,5 +474,5 @@ class MaxPooling:
         dx = col2im(dcol, self.x.shape, self.pool_h, self.pool_w, self.stride, self.pad)
         
         return dx
-}
+}*/
 #endif
