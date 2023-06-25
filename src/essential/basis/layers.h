@@ -178,9 +178,9 @@ public:
 class SoftmaxWithLoss: public Layer
 {
 private:
-        Tensor loss_;
-        Tensor y_;
-        Tensor t_;
+    Tensor loss_;
+    Tensor y_;
+    Tensor t_;
 
 public:
     SoftmaxWithLoss(){}
@@ -270,6 +270,7 @@ public:
         {
             return x * (1.0 - ((float)dropout_ratio_)/100);
         }
+
     }
 
     Tensor backward(Tensor& dout)
